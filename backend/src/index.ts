@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import fs from "fs";
 import path from "path";
 import http from "http";
-import soap from "soap";
+import * as soap from "soap";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { PrismaClient } from "@prisma/client";

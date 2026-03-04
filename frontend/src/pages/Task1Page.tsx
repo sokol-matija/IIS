@@ -1,8 +1,11 @@
 import { useState, useRef, type FormEvent, type ChangeEvent } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function Task1Page() {
+  const { role } = useAuth();
+  const isReadOnly = role === "read-only";
   const [result, setResult] = useState<{ data?: unknown; errors?: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [xmlFileName, setXmlFileName] = useState<string | null>(null);
@@ -145,11 +148,11 @@ export default function Task1Page() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || isReadOnly}
           className="btn-primary"
           style={{ height: 40, padding: "0 24px" }}
         >
-          {loading ? "Uploading..." : "Upload & Validate"}
+          {loading ? "Uploading..." : isReadOnly ? "Read-Only — Upload Disabled" : "Upload & Validate"}
         </button>
       </form>
 

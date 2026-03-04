@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function SettingsPage() {
+  const { role } = useAuth();
+  const isReadOnly = role === "read-only";
   const [useCustomApi, setUseCustomApi] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -99,7 +102,7 @@ export default function SettingsPage() {
               type="checkbox"
               checked={useCustomApi}
               onChange={handleToggle}
-              disabled={saving}
+              disabled={saving || isReadOnly}
             />
             <span className="toggle-track" />
           </label>

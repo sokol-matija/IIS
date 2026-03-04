@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<category>
+  <name>Demo Category</name>
+  <slug>demo-category</slug>
+  <description>A category uploaded via XML for demonstration</description>
+</category>

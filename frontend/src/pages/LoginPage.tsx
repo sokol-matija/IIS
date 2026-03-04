@@ -32,97 +32,119 @@ export default function LoginPage() {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        background: "#1a1a2e",
+        background: "var(--bg-primary)",
       }}
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: "#fff",
-          padding: 32,
-          borderRadius: 8,
-          width: 360,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-        }}
-      >
-        <h1 style={{ textAlign: "center", marginBottom: 24, color: "#1a1a2e" }}>
-          IIS Login
-        </h1>
-
-        {error && (
+      <div style={{ width: 400 }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div
             style={{
-              background: "#fdecea",
-              color: "#c62828",
-              padding: 10,
-              borderRadius: 4,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 56,
+              height: 56,
+              background: "var(--accent)",
+              borderRadius: 10,
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: 20,
               marginBottom: 16,
-              fontSize: 14,
+              letterSpacing: "-0.5px",
             }}
           >
-            {error}
+            IIS
           </div>
-        )}
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 14, color: "#333" }}>
-            Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={inputStyle}
-            placeholder="admin@iis.hr"
-          />
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ display: "block", marginBottom: 4, fontSize: 14, color: "#333" }}>
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={inputStyle}
-            placeholder="admin123"
-          />
+        <div
+          className="card"
+          style={{ padding: 48 }}
+        >
+          <h1
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              marginBottom: 6,
+              textAlign: "center",
+            }}
+          >
+            Welcome back!
+          </h1>
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: 14,
+              textAlign: "center",
+              marginBottom: 32,
+            }}
+          >
+            Log in to your IIS account
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: 20 }}>
+              <label className="field-label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="input"
+                placeholder="admin@iis.hr"
+                autoComplete="email"
+              />
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+              <label className="field-label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="input"
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary"
+              style={{ width: "100%", height: 40, fontSize: 14, justifyContent: "center" }}
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+
+            {error && (
+              <div className="alert-error" style={{ marginTop: 16 }}>
+                {error}
+              </div>
+            )}
+          </form>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
+        <p
           style={{
-            width: "100%",
-            padding: 12,
-            background: "#0f3460",
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            fontSize: 16,
-            cursor: loading ? "wait" : "pointer",
+            textAlign: "center",
+            marginTop: 20,
+            color: "var(--text-muted)",
+            fontSize: 12,
           }}
         >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        <div style={{ marginTop: 16, fontSize: 12, color: "#999", textAlign: "center" }}>
-          <div>admin@iis.hr / admin123 (full-access)</div>
-          <div>reader@iis.hr / reader123 (read-only)</div>
-        </div>
-      </form>
+          admin@iis.hr / admin123 &bull; reader@iis.hr / reader123
+        </p>
+      </div>
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: 10,
-  border: "1px solid #ddd",
-  borderRadius: 4,
-  fontSize: 14,
-  boxSizing: "border-box",
-};

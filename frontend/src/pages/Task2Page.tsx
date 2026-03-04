@@ -9,15 +9,18 @@ export default function Task2Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generateMsg, setGenerateMsg] = useState("");
+  const [generateError, setGenerateError] = useState(false);
 
   const handleGenerateXml = async () => {
     setGenerateMsg("");
+    setGenerateError(false);
     try {
       const res = await fetch(`${API_URL}/api/generate-xml`);
       const data = await res.json();
-      setGenerateMsg(data.message || "XML generated");
+      setGenerateMsg(data.message || "XML generated successfully");
     } catch {
       setGenerateMsg("Failed to generate XML");
+      setGenerateError(true);
     }
   };
 
@@ -37,44 +40,89 @@ export default function Task2Page() {
   };
 
   return (
-    <div>
-      <h1>Task 2 - SOAP Interface + XPath Filtering</h1>
-      <p style={{ color: "#666", marginBottom: 20 }}>
-        First generate the XML from the database, then search categories using SOAP with XPath
-        filtering.
-      </p>
-
-      <div style={cardStyle}>
-        <h3 style={{ marginTop: 0 }}>Step 1: Generate XML</h3>
-        <button onClick={handleGenerateXml} style={btnStyle}>
-          Generate categories.xml
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Task 2 — SOAP Search</h1>
+          <p className="page-subtitle">
+            Generate XML from the database, then search categories using SOAP with XPath filtering.
+          </p>
+        </div>
+        <button
+          onClick={handleGenerateXml}
+          className="btn-secondary"
+          style={{ height: 40, padding: "0 20px" }}
+        >
+          Generate XML
         </button>
-        {generateMsg && (
-          <span style={{ marginLeft: 12, color: "#2e7d32" }}>{generateMsg}</span>
-        )}
       </div>
 
-      <div style={{ ...cardStyle, marginTop: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Step 2: SOAP Search</h3>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      {generateMsg && (
+        <div
+          className={generateError ? "alert-error" : "alert-success"}
+          style={{ marginBottom: 20 }}
+        >
+          {generateMsg}
+        </div>
+      )}
+
+      {/* Search Card */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h2
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 16,
+          }}
+        >
+          SOAP Search
+        </h2>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
           <input
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Search term (e.g. 'electr')"
-            style={{ flex: 1, padding: 8, border: "1px solid #ddd", borderRadius: 4 }}
+            className="input"
+            style={{ flex: 1 }}
           />
-          <button type="submit" disabled={loading} style={btnStyle}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{ height: 40, padding: "0 20px" }}
+          >
             {loading ? "Searching..." : "Search via SOAP"}
           </button>
         </form>
 
-        {error && <div style={{ color: "#c62828", marginBottom: 12 }}>{error}</div>}
+        {error && (
+          <div className="alert-error" style={{ marginTop: 16 }}>
+            {error}
+          </div>
+        )}
+      </div>
 
-        {results.length > 0 && (
-          <table style={tableStyle}>
+      {/* Results */}
+      {results.length > 0 && (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            overflow: "hidden",
+          }}
+        >
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#1a1a2e", color: "#fff" }}>
+              <tr
+                style={{
+                  background: "var(--bg-card)",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
                 <th style={thStyle}>ID</th>
                 <th style={thStyle}>Name</th>
                 <th style={thStyle}>Slug</th>
@@ -83,45 +131,72 @@ export default function Task2Page() {
             </thead>
             <tbody>
               {results.map((cat, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                <tr
+                  key={i}
+                  style={{
+                    borderBottom: "1px solid var(--border)",
+                    background: "var(--bg-card)",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLTableRowElement).style.background =
+                      "var(--bg-hover)")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLTableRowElement).style.background =
+                      "var(--bg-card)")
+                  }
+                >
                   <td style={tdStyle}>{cat.id}</td>
-                  <td style={tdStyle}>{cat.name}</td>
-                  <td style={tdStyle}>{cat.slug}</td>
-                  <td style={tdStyle}>{cat.description || "-"}</td>
+                  <td style={{ ...tdStyle, fontWeight: 500 }}>{cat.name}</td>
+                  <td style={tdStyle}>
+                    <code
+                      style={{
+                        background: "var(--bg-input)",
+                        borderRadius: 3,
+                        padding: "2px 6px",
+                        fontSize: 12,
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {cat.slug}
+                    </code>
+                  </td>
+                  <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
+                    {cat.description || "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
+        </div>
+      )}
 
-        {results.length === 0 && !loading && !error && (
-          <p style={{ color: "#999", fontSize: 14 }}>No results yet. Enter a term and search.</p>
-        )}
-      </div>
+      {results.length === 0 && !loading && !error && (
+        <div className="card">
+          <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: 14 }}>
+            Enter a search term above to query categories via SOAP.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  padding: 24,
-  borderRadius: 8,
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+const thStyle: React.CSSProperties = {
+  padding: "10px 16px",
+  textAlign: "left",
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  color: "var(--text-muted)",
 };
 
-const btnStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  background: "#0f3460",
-  color: "#fff",
-  border: "none",
-  borderRadius: 4,
-  cursor: "pointer",
+const tdStyle: React.CSSProperties = {
+  padding: "0 16px",
+  fontSize: 14,
+  height: 48,
+  verticalAlign: "middle",
+  color: "var(--text-primary)",
 };
-
-const tableStyle: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const thStyle: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontSize: 13 };
-const tdStyle: React.CSSProperties = { padding: "8px 12px", fontSize: 13 };

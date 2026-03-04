@@ -24,8 +24,10 @@ export default function Task5Page() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   // GraphQL state
+  const [gqlOpen, setGqlOpen] = useState(false);
   const [gqlQuery, setGqlQuery] = useState(
     `{\n  categories {\n    id\n    name\n    slug\n    description\n  }\n}`
   );
@@ -68,6 +70,7 @@ export default function Task5Page() {
       setDescription("");
       setFormMode("create");
       setEditId(null);
+      setShowForm(false);
       await loadCategories();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Operation failed");
@@ -80,6 +83,7 @@ export default function Task5Page() {
     setName(cat.name);
     setSlug(cat.slug);
     setDescription(cat.description || "");
+    setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -118,70 +122,129 @@ export default function Task5Page() {
     }
   };
 
+  const handleCancelEdit = () => {
+    setFormMode("create");
+    setEditId(null);
+    setName("");
+    setSlug("");
+    setDescription("");
+    setShowForm(false);
+  };
+
   return (
-    <div>
-      <h1>Task 5 - REST CRUD + GraphQL</h1>
-
-      {/* CRUD Section */}
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0 }}>Categories CRUD (REST)</h2>
-
-        {error && <div style={{ color: "#c62828", marginBottom: 12 }}>{error}</div>}
-
-        <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <input
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              style={inputStyle}
-            />
-            <input
-              placeholder="Slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
-              style={inputStyle}
-            />
-            <input
-              placeholder="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{ ...inputStyle, flex: 2 }}
-            />
-          </div>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Task 5 — Categories</h1>
+          <p className="page-subtitle">REST CRUD operations and GraphQL queries on categories.</p>
+        </div>
+        {canWrite && (
           <button
-            type="submit"
-            disabled={!canWrite}
-            title={!canWrite ? "Insufficient permissions" : undefined}
-            style={{
-              ...btnStyle,
-              background: canWrite ? "#0f3460" : "#ccc",
-              cursor: canWrite ? "pointer" : "not-allowed",
+            className="btn-primary"
+            style={{ height: 40, padding: "0 20px" }}
+            onClick={() => {
+              setFormMode("create");
+              setName("");
+              setSlug("");
+              setDescription("");
+              setShowForm(true);
             }}
           >
-            {formMode === "create" ? "Create Category" : "Update Category"}
+            + Add an entry
           </button>
-          {formMode === "edit" && (
-            <button
-              type="button"
-              onClick={() => {
-                setFormMode("create");
-                setEditId(null);
-                setName("");
-                setSlug("");
-                setDescription("");
-              }}
-              style={{ ...btnStyle, background: "#666", marginLeft: 8 }}
-            >
-              Cancel
-            </button>
-          )}
-        </form>
+        )}
+      </div>
 
+      {error && (
+        <div className="alert-error" style={{ marginBottom: 20 }}>
+          {error}
+        </div>
+      )}
+
+      {/* Create / Edit Form */}
+      {showForm && (
+        <div className="card" style={{ marginBottom: 24 }}>
+          <h2
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 20,
+            }}
+          >
+            {formMode === "create" ? "New Category" : "Edit Category"}
+          </h2>
+          <form onSubmit={handleSubmit}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <label className="field-label" htmlFor="cat-name">
+                  Name
+                </label>
+                <input
+                  id="cat-name"
+                  className="input"
+                  placeholder="Category name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="cat-slug">
+                  Slug
+                </label>
+                <input
+                  id="cat-slug"
+                  className="input"
+                  placeholder="category-slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label className="field-label" htmlFor="cat-desc">
+                Description
+              </label>
+              <input
+                id="cat-desc"
+                className="input"
+                placeholder="Optional description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="submit" className="btn-primary" style={{ height: 36, padding: "0 20px" }}>
+                {formMode === "create" ? "Create" : "Update"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ height: 36, padding: "0 16px" }}
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Categories Table */}
+      <div className="card" style={{ marginBottom: 24 }}>
         {loading ? (
-          <p>Loading...</p>
+          <p style={{ color: "var(--text-muted)", textAlign: "center" }}>Loading...</p>
         ) : (
           <CategoryTable
             categories={categories}
@@ -192,69 +255,63 @@ export default function Task5Page() {
         )}
       </div>
 
-      {/* GraphQL Section */}
-      <div style={{ ...cardStyle, marginTop: 20 }}>
-        <h2 style={{ marginTop: 0 }}>GraphQL Query Panel</h2>
-        <textarea
-          value={gqlQuery}
-          onChange={(e) => setGqlQuery(e.target.value)}
-          rows={8}
+      {/* GraphQL Collapsible Panel */}
+      <div className="card">
+        <button
+          onClick={() => setGqlOpen((o) => !o)}
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             width: "100%",
-            fontFamily: "monospace",
-            fontSize: 13,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            boxSizing: "border-box",
-            marginBottom: 8,
+            background: "none",
+            border: "none",
+            color: "var(--text-primary)",
+            cursor: "pointer",
+            padding: 0,
           }}
-        />
-        <button onClick={handleGraphQL} disabled={gqlLoading} style={btnStyle}>
-          {gqlLoading ? "Running..." : "Execute Query"}
-        </button>
-
-        {gqlResult && (
-          <pre
+        >
+          <span
             style={{
-              marginTop: 12,
-              padding: 12,
-              background: "#1a1a2e",
-              color: "#0f0",
-              borderRadius: 4,
-              overflow: "auto",
-              fontSize: 12,
-              maxHeight: 400,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
             }}
           >
-            {gqlResult}
-          </pre>
+            GraphQL Explorer
+          </span>
+          <span style={{ color: "var(--text-muted)", fontSize: 14 }}>
+            {gqlOpen ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {gqlOpen && (
+          <div style={{ marginTop: 20 }}>
+            <label className="field-label">Query</label>
+            <textarea
+              className="textarea"
+              value={gqlQuery}
+              onChange={(e) => setGqlQuery(e.target.value)}
+              rows={8}
+              style={{ marginBottom: 12 }}
+            />
+            <button
+              onClick={handleGraphQL}
+              disabled={gqlLoading}
+              className="btn-primary"
+              style={{ height: 36, padding: "0 20px" }}
+            >
+              {gqlLoading ? "Running..." : "Run Query"}
+            </button>
+
+            {gqlResult && (
+              <pre className="json-viewer">{gqlResult}</pre>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  padding: 24,
-  borderRadius: 8,
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-};
-
-const inputStyle: React.CSSProperties = {
-  flex: 1,
-  padding: 8,
-  border: "1px solid #ddd",
-  borderRadius: 4,
-  minWidth: 120,
-};
-
-const btnStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  background: "#0f3460",
-  color: "#fff",
-  border: "none",
-  borderRadius: 4,
-  cursor: "pointer",
-};

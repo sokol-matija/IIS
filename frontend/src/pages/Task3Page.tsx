@@ -6,15 +6,18 @@ export default function Task3Page() {
   const [result, setResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [generateMsg, setGenerateMsg] = useState("");
+  const [generateError, setGenerateError] = useState(false);
 
   const handleGenerate = async () => {
     setGenerateMsg("");
+    setGenerateError(false);
     try {
       const res = await fetch(`${API_URL}/api/generate-xml`);
       const data = await res.json();
-      setGenerateMsg(data.message || "XML generated");
+      setGenerateMsg(data.message || "XML generated successfully");
     } catch {
       setGenerateMsg("Failed to generate XML");
+      setGenerateError(true);
     }
   };
 
@@ -33,44 +36,82 @@ export default function Task3Page() {
   };
 
   return (
-    <div>
-      <h1>Task 3 - XML Schema Validation</h1>
-      <p style={{ color: "#666", marginBottom: 20 }}>
-        Validate the generated categories.xml against the category.xsd schema.
-      </p>
-
-      <div style={cardStyle}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          <button onClick={handleGenerate} style={btnStyle}>
-            Generate XML
-          </button>
-          <button onClick={handleValidate} disabled={loading} style={btnStyle}>
-            {loading ? "Validating..." : "Validate XML"}
-          </button>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Task 3 — XML Validation</h1>
+          <p className="page-subtitle">
+            Validate the generated categories.xml against the category.xsd schema.
+          </p>
         </div>
+        <button
+          onClick={handleGenerate}
+          className="btn-secondary"
+          style={{ height: 40, padding: "0 20px" }}
+        >
+          Generate XML
+        </button>
+      </div>
 
-        {generateMsg && (
-          <div style={{ color: "#2e7d32", marginBottom: 12 }}>{generateMsg}</div>
-        )}
+      {generateMsg && (
+        <div
+          className={generateError ? "alert-error" : "alert-success"}
+          style={{ marginBottom: 20 }}
+        >
+          {generateMsg}
+        </div>
+      )}
+
+      <div className="card">
+        <h2
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 8,
+          }}
+        >
+          XSD Validation
+        </h2>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>
+          Validate <code style={{ color: "var(--accent)" }}>categories.xml</code> against{" "}
+          <code style={{ color: "var(--accent)" }}>category.xsd</code> schema.
+        </p>
+
+        <button
+          onClick={handleValidate}
+          disabled={loading}
+          className="btn-primary"
+          style={{ height: 40, padding: "0 28px", fontSize: 14 }}
+        >
+          {loading ? "Validating..." : "Run Validation"}
+        </button>
 
         {result && (
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 4,
-              background: result.valid ? "#e8f5e9" : "#fdecea",
-              color: result.valid ? "#2e7d32" : "#c62828",
-            }}
-          >
-            <strong>
-              {result.valid ? "XML is valid!" : "XML validation failed"}
-            </strong>
-            {result.errors.length > 0 && (
-              <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
-                {result.errors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
+          <div style={{ marginTop: 24 }}>
+            {result.valid ? (
+              <div className="alert-success">
+                <span style={{ fontSize: 16, marginRight: 8 }}>✅</span>
+                <strong>XML is valid</strong> — The document conforms to the XSD schema.
+              </div>
+            ) : (
+              <div className="alert-error">
+                <div style={{ marginBottom: result.errors.length > 0 ? 8 : 0 }}>
+                  <span style={{ fontSize: 16, marginRight: 8 }}>❌</span>
+                  <strong>XML validation failed</strong>
+                </div>
+                {result.errors.length > 0 && (
+                  <ul style={{ paddingLeft: 20, margin: 0, marginTop: 8 }}>
+                    {result.errors.map((err, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        {err}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -78,19 +119,3 @@ export default function Task3Page() {
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  padding: 24,
-  borderRadius: 8,
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-};
-
-const btnStyle: React.CSSProperties = {
-  padding: "10px 20px",
-  background: "#0f3460",
-  color: "#fff",
-  border: "none",
-  borderRadius: 4,
-  cursor: "pointer",
-};

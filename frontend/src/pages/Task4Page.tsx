@@ -8,6 +8,20 @@ interface WeatherStation {
   description: string;
 }
 
+function TempBadge({ temp }: { temp: string }) {
+  const num = parseFloat(temp);
+  let className = "badge-warning";
+  if (!isNaN(num)) {
+    if (num <= 5) className = "badge-error";
+    else if (num >= 25) className = "badge-success";
+  }
+  return (
+    <span className={className}>
+      {temp} °C
+    </span>
+  );
+}
+
 export default function Task4Page() {
   const [city, setCity] = useState("");
   const [stations, setStations] = useState<WeatherStation[]>([]);
@@ -36,73 +50,111 @@ export default function Task4Page() {
   };
 
   return (
-    <div>
-      <h1>Task 4 - gRPC Weather Service</h1>
-      <p style={{ color: "#666", marginBottom: 20 }}>
-        Search for weather data from Croatian weather stations via gRPC. The backend proxies the
-        gRPC call to the weather server which fetches data from vrijeme.hr.
-      </p>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Task 4 — Weather / gRPC</h1>
+          <p className="page-subtitle">
+            Search for weather data from Croatian weather stations via gRPC.
+          </p>
+        </div>
+      </div>
 
-      <div style={cardStyle}>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      {/* Search Card */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <h2
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 16,
+          }}
+        >
+          Station Search
+        </h2>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
           <input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="City name (e.g. Zagreb)"
-            style={{ flex: 1, padding: 8, border: "1px solid #ddd", borderRadius: 4 }}
+            className="input"
+            style={{ flex: 1 }}
           />
-          <button type="submit" disabled={loading} style={btnStyle}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{ height: 40, padding: "0 20px" }}
+          >
             {loading ? "Searching..." : "Get Temperature"}
           </button>
         </form>
 
-        {error && <div style={{ color: "#c62828", marginBottom: 12 }}>{error}</div>}
-
-        {stations.length > 0 && (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#1a1a2e", color: "#fff" }}>
-                <th style={thStyle}>City</th>
-                <th style={thStyle}>Temperature</th>
-                <th style={thStyle}>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stations.map((s, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={tdStyle}>{s.city}</td>
-                  <td style={tdStyle}>{s.temperature} C</td>
-                  <td style={tdStyle}>{s.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {stations.length === 0 && !loading && !error && (
-          <p style={{ color: "#999", fontSize: 14 }}>Enter a city name to search.</p>
+        {error && (
+          <div className="alert-error" style={{ marginTop: 16 }}>
+            {error}
+          </div>
         )}
       </div>
+
+      {/* Results Grid */}
+      {stations.length > 0 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {stations.map((s, i) => (
+            <div
+              key={i}
+              className="card"
+              style={{ padding: 20 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 15,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {s.city}
+                </span>
+                <TempBadge temp={s.temperature} />
+              </div>
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: 13,
+                  margin: 0,
+                }}
+              >
+                {s.description || "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {stations.length === 0 && !loading && !error && (
+        <div className="card">
+          <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: 14 }}>
+            Enter a city name to search weather stations.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  padding: 24,
-  borderRadius: 8,
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-};
-
-const btnStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  background: "#0f3460",
-  color: "#fff",
-  border: "none",
-  borderRadius: 4,
-  cursor: "pointer",
-};
-
-const thStyle: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontSize: 13 };
-const tdStyle: React.CSSProperties = { padding: "8px 12px", fontSize: 13 };

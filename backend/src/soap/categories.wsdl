@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="http://iis.hr/categories"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             name="CategoriesService"
+             targetNamespace="http://iis.hr/categories">
+
+  <types>
+    <xsd:schema targetNamespace="http://iis.hr/categories">
+      <xsd:element name="SearchCategoriesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="term" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchCategoriesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="categories" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="id" type="xsd:int"/>
+                  <xsd:element name="name" type="xsd:string"/>
+                  <xsd:element name="slug" type="xsd:string"/>
+                  <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+
+  <message name="SearchCategoriesInput">
+    <part name="parameters" element="tns:SearchCategoriesRequest"/>
+  </message>
+
+  <message name="SearchCategoriesOutput">
+    <part name="parameters" element="tns:SearchCategoriesResponse"/>
+  </message>
+
+  <portType name="CategoriesPortType">
+    <operation name="SearchCategories">
+      <input message="tns:SearchCategoriesInput"/>
+      <output message="tns:SearchCategoriesOutput"/>
+    </operation>
+  </portType>
+
+  <binding name="CategoriesBinding" type="tns:CategoriesPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="SearchCategories">
+      <soap:operation soapAction="http://iis.hr/categories/SearchCategories"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+  </binding>
+
+  <service name="CategoriesService">
+    <port name="CategoriesPort" binding="tns:CategoriesBinding">
+      <soap:address location="http://localhost:3001/soap"/>
+    </port>
+  </service>
+</definitions>

@@ -8,13 +8,17 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/settings`)
+    const controller = new AbortController();
+    fetch(`${API_URL}/api/settings`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         setUseCustomApi(data.useCustomApi);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        if (err.name !== "AbortError") setLoading(false);
+      });
+    return () => controller.abort();
   }, []);
 
   const handleToggle = async () => {

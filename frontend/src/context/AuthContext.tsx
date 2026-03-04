@@ -35,26 +35,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // On mount, try to refresh from stored refresh token
   useEffect(() => {
     const refreshToken = localStorage.getItem("refreshToken");
-    if (refreshToken) {
-      fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+    if (!refreshToken) return;
+    const controller = new AbortController();
+    fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Refresh failed");
+        return res.json();
       })
-        .then((res) => {
-          if (!res.ok) throw new Error("Refresh failed");
-          return res.json();
-        })
-        .then((data) => {
-          const decoded = decodeJwt(data.accessToken);
-          setAccessToken(data.accessToken);
-          setRole(decoded.role);
-          setEmail(decoded.email);
-        })
-        .catch(() => {
-          localStorage.removeItem("refreshToken");
-        });
-    }
+      .then((data) => {
+        const decoded = decodeJwt(data.accessToken);
+        setAccessToken(data.accessToken);
+        setRole(decoded.role);
+        setEmail(decoded.email);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") localStorage.removeItem("refreshToken");
+      });
+    return () => controller.abort();
   }, []);
 
   const login = useCallback(async (emailInput: string, password: string) => {

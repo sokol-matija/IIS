@@ -109,9 +109,9 @@ export default function Task4Page() {
             gap: 16,
           }}
         >
-          {stations.map((s, i) => (
+          {stations.map((s) => (
             <div
-              key={i}
+              key={s.city}
               className="card"
               style={{ padding: 20 }}
             >

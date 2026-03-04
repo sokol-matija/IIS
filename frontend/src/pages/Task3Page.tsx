@@ -104,8 +104,8 @@ export default function Task3Page() {
                 </div>
                 {result.errors.length > 0 && (
                   <ul style={{ paddingLeft: 20, margin: 0, marginTop: 8 }}>
-                    {result.errors.map((err, i) => (
-                      <li key={i} style={{ marginBottom: 4 }}>
+                    {result.errors.map((err) => (
+                      <li key={err} style={{ marginBottom: 4 }}>
                         {err}
                       </li>
                     ))}

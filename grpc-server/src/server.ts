@@ -1,23 +1,11 @@
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
-import { XMLParser } from "fast-xml-parser";
 import path from "path";
 import https from "https";
+import { parseWeatherData, type WeatherStation } from "./weatherParser";
 
 const PROTO_PATH = path.resolve(__dirname, "../proto/weather.proto");
 const WEATHER_URL = "https://vrijeme.hr/hrvatska_n.xml";
-
-interface WeatherStation {
-  city: string;
-  temperature: string;
-  description: string;
-}
-
-interface StationData {
-  GradIme?: string;
-  Temp?: string | number;
-  Vrijeme?: string;
-}
 
 function fetchWeatherXml(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -28,30 +16,6 @@ function fetchWeatherXml(): Promise<string> {
       res.on("error", reject);
     }).on("error", reject);
   });
-}
-
-function parseWeatherData(xmlData: string, cityFilter: string): WeatherStation[] {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    isArray: (name) => name === "Grad",
-  });
-
-  const parsed = parser.parse(xmlData);
-
-  // The XML structure from vrijeme.hr has Hrvatska > Grad[] elements
-  const stations: StationData[] = parsed?.Hrvatska?.Grad || [];
-  const filter = cityFilter.toLowerCase();
-
-  return stations
-    .filter((s) => {
-      const name = String(s.GradIme || "").toLowerCase();
-      return name.includes(filter);
-    })
-    .map((s) => ({
-      city: String(s.GradIme || ""),
-      temperature: String(s.Temp ?? "N/A"),
-      description: String(s.Vrijeme || "N/A"),
-    }));
 }
 
 function main() {

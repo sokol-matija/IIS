@@ -130,9 +130,9 @@ export default function Task2Page() {
               </tr>
             </thead>
             <tbody>
-              {results.map((cat, i) => (
+              {results.map((cat) => (
                 <tr
-                  key={i}
+                  key={cat.id ?? cat.slug}
                   style={{
                     borderBottom: "1px solid var(--border)",
                     background: "var(--bg-card)",

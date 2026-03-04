@@ -159,8 +159,8 @@ export default function Task1Page() {
             <div className="card alert-error" style={{ padding: 20 }}>
               <p style={{ fontWeight: 600, marginBottom: 8 }}>Validation Errors</p>
               <ul style={{ paddingLeft: 20, margin: 0 }}>
-                {result.errors.map((err, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
+                {result.errors.map((err) => (
+                  <li key={err} style={{ marginBottom: 4 }}>
                     {err}
                   </li>
                 ))}

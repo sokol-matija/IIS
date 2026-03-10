@@ -13,11 +13,12 @@ export async function loginApi(email: string, password: string) {
   return res.json();
 }
 
-export async function refreshApi(refreshToken: string) {
+export async function refreshApi(refreshToken: string, signal?: AbortSignal) {
   const res = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),
+    signal,
   });
   if (!res.ok) throw new Error("Refresh failed");
   return res.json();

@@ -1,9 +1,8 @@
 import { useReducer, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { getSettings, updateSettings } from "../api/settings";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Badge } from "@/components/ui/badge";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface SettingsState {
   useCustomApi: boolean;
@@ -31,8 +30,7 @@ function useSettings() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_URL}/api/settings`, { signal: controller.signal })
-      .then((res) => res.json())
+    getSettings(controller.signal)
       .then((data) => dispatch({ type: "loaded", useCustomApi: data.useCustomApi }))
       .catch((err) => { if (err.name !== "AbortError") dispatch({ type: "error" }); });
     return () => controller.abort();
@@ -41,12 +39,7 @@ function useSettings() {
   const toggle = async (current: boolean) => {
     dispatch({ type: "saving" });
     try {
-      const res = await fetch(`${API_URL}/api/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ useCustomApi: !current }),
-      });
-      const data = await res.json();
+      const data = await updateSettings({ useCustomApi: !current });
       dispatch({ type: "saved", useCustomApi: data.useCustomApi });
     } catch {
       dispatch({ type: "error" });

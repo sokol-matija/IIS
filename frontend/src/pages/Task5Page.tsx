@@ -265,8 +265,9 @@ export default function Task5Page() {
 
           {gql.open && (
             <div className="mt-4">
-              <Label className="mb-1.5">Query</Label>
+              <Label htmlFor="gql-query" className="mb-1.5">Query</Label>
               <Textarea
+                id="gql-query"
                 value={gql.query}
                 onChange={(e) => gqlDispatch({ type: "set_query", value: e.target.value })}
                 rows={8}

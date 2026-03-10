@@ -27,12 +27,6 @@ export async function getCategories(token: string): Promise<Category[]> {
   return data.data || [];
 }
 
-export async function getCategory(token: string, id: number): Promise<Category> {
-  const res = await authFetch(`${API_URL}/api/categories/${id}`, token);
-  const data = await res.json();
-  return data.data;
-}
-
 export async function createCategory(
   token: string,
   cat: { name: string; slug: string; description?: string }

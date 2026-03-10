@@ -9,3 +9,4 @@ generated/
 logs/
 *.tsbuildinfo
 /.serena/project.yml
+/.serena

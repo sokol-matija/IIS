@@ -1,6 +1,11 @@
-import { useState, type FormEvent } from "react";
+import React from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,7 +15,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -26,122 +31,68 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        background: "var(--bg-primary)",
-      }}
-    >
-      <div style={{ width: 400 }}>
+    <div className="flex justify-center items-center min-h-screen bg-background">
+      <div className="w-[400px]">
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 56,
-              height: 56,
-              background: "var(--accent)",
-              borderRadius: 10,
-              color: "#fff",
-              fontWeight: 800,
-              fontSize: 20,
-              marginBottom: 16,
-              letterSpacing: "-0.5px",
-            }}
-          >
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 text-white font-extrabold text-xl mb-4 tracking-tight shadow-[0_4px_20px_rgba(124,58,237,0.4)]">
             IIS
           </div>
         </div>
 
-        <div
-          className="card"
-          style={{ padding: 48 }}
+        <GradientCard
+          variant="aurora"
+          title="Welcome back!"
+          description="Log in to your IIS account"
         >
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              marginBottom: 6,
-              textAlign: "center",
-            }}
-          >
-            Welcome back!
-          </h1>
-          <p
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: 14,
-              textAlign: "center",
-              marginBottom: 32,
-            }}
-          >
-            Log in to your IIS account
-          </p>
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 20 }}>
-              <label className="field-label" htmlFor="email">
+          <form onSubmit={handleSubmit} className="mt-2">
+            <div className="mb-5">
+              <Label htmlFor="email" className="mb-1.5">
                 Email
-              </label>
-              <input
+              </Label>
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="input"
                 placeholder="admin@iis.hr"
                 autoComplete="email"
               />
             </div>
 
-            <div style={{ marginBottom: 28 }}>
-              <label className="field-label" htmlFor="password">
+            <div className="mb-7">
+              <Label htmlFor="password" className="mb-1.5">
                 Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="input"
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="btn-primary"
-              style={{ width: "100%", height: 40, fontSize: 14, justifyContent: "center" }}
+              className="w-full h-10 text-sm justify-center"
             >
               {loading ? "Signing in..." : "Sign In"}
-            </button>
+            </Button>
 
             {error && (
-              <div className="alert-error" style={{ marginTop: 16 }}>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mt-4">
                 {error}
               </div>
             )}
           </form>
-        </div>
+        </GradientCard>
 
-        <p
-          style={{
-            textAlign: "center",
-            marginTop: 20,
-            color: "var(--text-muted)",
-            fontSize: 12,
-          }}
-        >
+        <p className="text-center mt-5 text-muted-foreground text-xs">
           admin@iis.hr / admin123 &bull; reader@iis.hr / reader123
         </p>
       </div>

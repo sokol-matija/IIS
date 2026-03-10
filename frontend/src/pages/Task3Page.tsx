@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Button } from "@/components/ui/button";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -36,86 +38,71 @@ export default function Task3Page() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="page-title">Task 3 — XML Validation</h1>
-          <p className="page-subtitle">
+          <h1 className="text-2xl font-semibold">Task 3 — XML Validation</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Validate the generated categories.xml against the category.xsd schema.
           </p>
         </div>
-        <button
-          onClick={handleGenerate}
-          className="btn-secondary"
-          style={{ height: 40, padding: "0 20px" }}
-        >
+        <Button variant="outline" onClick={handleGenerate} className="h-10 px-5">
           Generate XML
-        </button>
+        </Button>
       </div>
 
       {generateMsg && (
         <div
-          className={generateError ? "alert-error" : "alert-success"}
-          style={{ marginBottom: 20 }}
+          className={
+            generateError
+              ? "rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mb-5"
+              : "rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400 mb-5"
+          }
         >
           {generateMsg}
         </div>
       )}
 
-      <div className="card">
-        <h2
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            marginBottom: 8,
-          }}
-        >
-          XSD Validation
-        </h2>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>
-          Validate <code style={{ color: "var(--accent)" }}>categories.xml</code> against{" "}
-          <code style={{ color: "var(--accent)" }}>category.xsd</code> schema.
-        </p>
+      <GradientCard
+        variant="mint"
+        title="XSD Validation"
+        description="Validate categories.xml against category.xsd schema"
+      >
+        <div className="mt-4">
+          <Button
+            onClick={handleValidate}
+            disabled={loading}
+            className="h-10 px-7 text-sm"
+          >
+            {loading ? "Validating..." : "Run Validation"}
+          </Button>
 
-        <button
-          onClick={handleValidate}
-          disabled={loading}
-          className="btn-primary"
-          style={{ height: 40, padding: "0 28px", fontSize: 14 }}
-        >
-          {loading ? "Validating..." : "Run Validation"}
-        </button>
-
-        {result && (
-          <div style={{ marginTop: 24 }}>
-            {result.valid ? (
-              <div className="alert-success">
-                <span style={{ fontSize: 16, marginRight: 8 }}>✅</span>
-                <strong>XML is valid</strong> — The document conforms to the XSD schema.
-              </div>
-            ) : (
-              <div className="alert-error">
-                <div style={{ marginBottom: result.errors.length > 0 ? 8 : 0 }}>
-                  <span style={{ fontSize: 16, marginRight: 8 }}>❌</span>
-                  <strong>XML validation failed</strong>
+          {result && (
+            <div className="mt-6">
+              {result.valid ? (
+                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400">
+                  <strong>XML is valid</strong> — The document conforms to the XSD schema.
                 </div>
-                {result.errors.length > 0 && (
-                  <ul style={{ paddingLeft: 20, margin: 0, marginTop: 8 }}>
-                    {result.errors.map((err) => (
-                      <li key={err} style={{ marginBottom: 4 }}>
-                        {err}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              ) : (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive">
+                  <div className={result.errors.length > 0 ? "mb-2" : ""}>
+                    <strong>XML validation failed</strong>
+                  </div>
+                  {result.errors.length > 0 && (
+                    <ul className="pl-5 m-0 mt-2 list-disc">
+                      {result.errors.map((err) => (
+                        <li key={err} className="mb-1">
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </GradientCard>
     </div>
   );
 }

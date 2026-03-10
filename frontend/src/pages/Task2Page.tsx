@@ -1,15 +1,35 @@
-import { useState, type FormEvent } from "react";
+import React, { useReducer, useState } from "react";
 import { searchCategoriesSoap, type SoapCategory } from "../api/soap";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+interface SearchState {
+  results: SoapCategory[];
+  loading: boolean;
+  error: string;
+}
+
+type SearchAction =
+  | { type: "start" }
+  | { type: "success"; results: SoapCategory[] }
+  | { type: "failure"; error: string };
+
+function searchReducer(_state: SearchState, action: SearchAction): SearchState {
+  switch (action.type) {
+    case "start":   return { results: [], loading: true, error: "" };
+    case "success": return { results: action.results, loading: false, error: "" };
+    case "failure": return { results: [], loading: false, error: action.error };
+  }
+}
+
 export default function Task2Page() {
   const [term, setTerm] = useState("");
-  const [results, setResults] = useState<SoapCategory[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [generateMsg, setGenerateMsg] = useState("");
   const [generateError, setGenerateError] = useState(false);
+  const [search, dispatch] = useReducer(searchReducer, { results: [], loading: false, error: "" });
 
   const handleGenerateXml = async () => {
     setGenerateMsg("");
@@ -24,146 +44,96 @@ export default function Task2Page() {
     }
   };
 
-  const handleSearch = async (e: FormEvent) => {
+  const handleSearch = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
+    dispatch({ type: "start" });
     try {
       const cats = await searchCategoriesSoap(term);
-      setResults(cats);
+      dispatch({ type: "success", results: cats });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "SOAP search failed");
-    } finally {
-      setLoading(false);
+      dispatch({ type: "failure", error: err instanceof Error ? err.message : "SOAP search failed" });
     }
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="page-title">Task 2 — SOAP Search</h1>
-          <p className="page-subtitle">
+          <h1 className="text-2xl font-semibold">Task 2 — SOAP Search</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Generate XML from the database, then search categories using SOAP with XPath filtering.
           </p>
         </div>
-        <button
-          onClick={handleGenerateXml}
-          className="btn-secondary"
-          style={{ height: 40, padding: "0 20px" }}
-        >
+        <Button variant="outline" onClick={handleGenerateXml} className="h-10 px-5">
           Generate XML
-        </button>
+        </Button>
       </div>
 
       {generateMsg && (
         <div
-          className={generateError ? "alert-error" : "alert-success"}
-          style={{ marginBottom: 20 }}
+          className={
+            generateError
+              ? "rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mb-5"
+              : "rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400 mb-5"
+          }
         >
           {generateMsg}
         </div>
       )}
 
       {/* Search Card */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            marginBottom: 16,
-          }}
-        >
-          SOAP Search
-        </h2>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
-          <input
+      <GradientCard
+        variant="ocean"
+        title="SOAP Search"
+        description="Search categories via SOAP with XPath filtering"
+      >
+        <form onSubmit={handleSearch} className="flex gap-3 mt-2">
+          <Input
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Search term (e.g. 'electr')"
-            className="input"
-            style={{ flex: 1 }}
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary"
-            style={{ height: 40, padding: "0 20px" }}
-          >
-            {loading ? "Searching..." : "Search via SOAP"}
-          </button>
+          <Button type="submit" disabled={search.loading} className="h-10 px-5">
+            {search.loading ? "Searching..." : "Search via SOAP"}
+          </Button>
         </form>
 
-        {error && (
-          <div className="alert-error" style={{ marginTop: 16 }}>
-            {error}
+        {search.error && (
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mt-4">
+            {search.error}
           </div>
         )}
-      </div>
+      </GradientCard>
 
       {/* Results */}
-      {results.length > 0 && (
-        <div
-          style={{
-            border: "1px solid var(--border)",
-            borderRadius: 4,
-            overflow: "hidden",
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {search.results.length > 0 && (
+        <div className="border border-border rounded overflow-hidden mt-5">
+          <table className="w-full border-collapse">
             <thead>
-              <tr
-                style={{
-                  background: "var(--bg-card)",
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>Slug</th>
-                <th style={thStyle}>Description</th>
+              <tr className="bg-card border-b border-border">
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">ID</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Name</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Slug</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Description</th>
               </tr>
             </thead>
             <tbody>
-              {results.map((cat) => (
+              {search.results.map((cat) => (
                 <tr
                   key={cat.id ?? cat.slug}
-                  style={{
-                    borderBottom: "1px solid var(--border)",
-                    background: "var(--bg-card)",
-                    transition: "background 0.1s",
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "var(--bg-hover)")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "var(--bg-card)")
-                  }
+                  className="border-b border-border bg-card hover:bg-accent/30 transition-colors"
                 >
-                  <td style={tdStyle}>{cat.id}</td>
-                  <td style={{ ...tdStyle, fontWeight: 500 }}>{cat.name}</td>
-                  <td style={tdStyle}>
-                    <code
-                      style={{
-                        background: "var(--bg-input)",
-                        borderRadius: 3,
-                        padding: "2px 6px",
-                        fontSize: 12,
-                        color: "var(--text-secondary)",
-                      }}
-                    >
+                  <td className="px-4 h-12 align-middle text-sm text-foreground">{cat.id}</td>
+                  <td className="px-4 h-12 align-middle text-sm font-medium text-foreground">{cat.name}</td>
+                  <td className="px-4 h-12 align-middle text-sm">
+                    <code className="bg-muted rounded px-1.5 py-0.5 text-xs text-muted-foreground">
                       {cat.slug}
                     </code>
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
-                    {cat.description || "—"}
+                  <td className="px-4 h-12 align-middle text-sm text-muted-foreground">
+                    {cat.description || "\u2014"}
                   </td>
                 </tr>
               ))}
@@ -172,9 +142,9 @@ export default function Task2Page() {
         </div>
       )}
 
-      {results.length === 0 && !loading && !error && (
-        <div className="card">
-          <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: 14 }}>
+      {search.results.length === 0 && !search.loading && !search.error && (
+        <div className="bg-card border border-border rounded-xl p-6 mt-5">
+          <p className="text-muted-foreground text-center text-sm">
             Enter a search term above to query categories via SOAP.
           </p>
         </div>
@@ -182,21 +152,3 @@ export default function Task2Page() {
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: "10px 16px",
-  textAlign: "left",
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  color: "var(--text-muted)",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "0 16px",
-  fontSize: 14,
-  height: 48,
-  verticalAlign: "middle",
-  color: "var(--text-primary)",
-};

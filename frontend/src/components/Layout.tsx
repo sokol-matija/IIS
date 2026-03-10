@@ -1,13 +1,23 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  UploadCloud,
+  Radio,
+  CheckCircle2,
+  Cloud,
+  LayoutList,
+  Settings,
+  LogOut,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/task1", label: "Upload", icon: "📋" },
-  { to: "/task2", label: "SOAP", icon: "📡" },
-  { to: "/task3", label: "Validate", icon: "✅" },
-  { to: "/task4", label: "Weather", icon: "🌤" },
-  { to: "/task5", label: "Categories", icon: "🗃" },
-  { to: "/settings", label: "Settings", icon: "⚙️" },
+  { to: "/task1", label: "Upload", icon: UploadCloud },
+  { to: "/task2", label: "SOAP", icon: Radio },
+  { to: "/task3", label: "Validate", icon: CheckCircle2 },
+  { to: "/task4", label: "Weather", icon: Cloud },
+  { to: "/task5", label: "Categories", icon: LayoutList },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 function getInitials(email: string | null): string {
@@ -24,117 +34,49 @@ export default function Layout() {
   const { email, role, logout } = useAuth();
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <nav
-        style={{
-          width: 56,
-          minWidth: 56,
-          background: "var(--bg-secondary)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          borderRight: "1px solid var(--border)",
-          padding: "12px 0",
-          gap: 0,
-        }}
-      >
+      <nav className="w-14 min-w-14 bg-sidebar flex flex-col items-center border-r border-sidebar-border py-3 gap-0">
         {/* Logo */}
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            background: "var(--accent)",
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 14,
-            marginBottom: 20,
-            flexShrink: 0,
-            letterSpacing: "-0.5px",
-          }}
-        >
+        <div className="w-9 h-9 rounded-md bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-white font-bold text-[11px] mb-5 shrink-0 tracking-tight shadow-[0_2px_12px_rgba(124,58,237,0.4)]">
           IIS
         </div>
 
         {/* Nav items */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 4,
-            width: "100%",
-            padding: "0 8px",
-          }}
-        >
+        <div className="flex-1 flex flex-col items-center gap-1 w-full px-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               title={item.label}
-              style={({ isActive }) => ({
-                width: "100%",
-                height: 40,
-                borderRadius: 6,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-                textDecoration: "none",
-                background: isActive ? "rgba(73,69,255,0.2)" : "transparent",
-                boxShadow: isActive ? "inset 0 0 0 1px rgba(73,69,255,0.4)" : "none",
-                transition: "background 0.15s",
-                cursor: "pointer",
-              })}
+              className={({ isActive }) =>
+                cn(
+                  "w-full h-10 rounded-md flex items-center justify-center transition-colors",
+                  isActive
+                    ? "bg-primary/20 ring-1 ring-primary/40 text-primary"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )
+              }
             >
               {({ isActive }) => (
-                <span
-                  style={{
-                    opacity: isActive ? 1 : 0.5,
-                    transition: "opacity 0.15s",
-                  }}
-                >
-                  {item.icon}
-                </span>
+                <item.icon
+                  size={18}
+                  className={cn(
+                    "transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground opacity-70"
+                  )}
+                />
               )}
             </NavLink>
           ))}
         </div>
 
         {/* Bottom: user avatar + logout */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-            paddingTop: 12,
-            borderTop: "1px solid var(--border)",
-            width: "100%",
-          }}
-        >
+        <div className="flex flex-col items-center gap-2 pt-3 border-t border-sidebar-border w-full">
           {/* Avatar */}
           <div
             title={email ?? ""}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: "default",
-              flexShrink: 0,
-            }}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-600 text-white flex items-center justify-center text-[11px] font-bold cursor-default shrink-0"
           >
             {getInitials(email)}
           </div>
@@ -143,43 +85,17 @@ export default function Layout() {
           <button
             onClick={logout}
             title="Log out"
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-muted)",
-              fontSize: 16,
-              cursor: "pointer",
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "color 0.15s, background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--danger)";
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(238,94,82,0.1)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
+            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
-            ⏏
+            <LogOut size={16} />
           </button>
 
           {/* Role badge */}
           <span
-            style={{
-              fontSize: 8,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: role === "full-access" ? "var(--success)" : "var(--warning)",
-              textAlign: "center",
-              lineHeight: 1.2,
-            }}
+            className={cn(
+              "text-[8px] font-bold uppercase tracking-wide text-center leading-tight",
+              role === "full-access" ? "text-emerald-400" : "text-amber-400"
+            )}
           >
             {role === "full-access" ? "Admin" : "Read"}
           </span>
@@ -187,15 +103,7 @@ export default function Layout() {
       </nav>
 
       {/* Main area */}
-      <main
-        style={{
-          flex: 1,
-          overflow: "auto",
-          background: "var(--bg-primary)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <main className="flex-1 overflow-auto bg-background flex flex-col">
         <Outlet />
       </main>
     </div>

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { Category } from "../api/categories";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, Search } from "lucide-react";
 
 interface CategoryTableProps {
   categories: Category[];
@@ -28,58 +31,31 @@ export default function CategoryTable({
   return (
     <div>
       {/* Toolbar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          gap: 12,
-        }}
-      >
-        <div style={{ position: "relative", flex: "0 1 320px" }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: "var(--text-muted)",
-              fontSize: 14,
-              pointerEvents: "none",
-            }}
-          >
-            🔍
-          </span>
-          <input
-            className="input"
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="relative flex-[0_1_320px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search entries..."
-            style={{ paddingLeft: 36 }}
+            className="pl-9"
           />
         </div>
-        <span style={{ color: "var(--text-muted)", fontSize: 13, whiteSpace: "nowrap" }}>
+        <span className="text-muted-foreground text-sm whitespace-nowrap">
           {filtered.length} {filtered.length === 1 ? "entry" : "entries"} found
         </span>
       </div>
 
       {/* Table */}
-      <div
-        style={{
-          border: "1px solid var(--border)",
-          borderRadius: 4,
-          overflow: "hidden",
-        }}
-      >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="border border-border rounded overflow-hidden">
+        <table className="w-full border-collapse">
           <thead>
-            <tr style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Slug</th>
-              <th style={thStyle}>Description</th>
-              <th style={thStyle}>ID</th>
-              {showActions && <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>}
+            <tr className="bg-card border-b border-border">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Name</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Slug</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Description</th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">ID</th>
+              {showActions && <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -87,13 +63,7 @@ export default function CategoryTable({
               <tr>
                 <td
                   colSpan={showActions ? 5 : 4}
-                  style={{
-                    padding: "40px 16px",
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    fontSize: 14,
-                    background: "var(--bg-card)",
-                  }}
+                  className="px-4 py-10 text-center text-sm text-muted-foreground bg-card"
                 >
                   No entries found
                 </td>
@@ -102,68 +72,51 @@ export default function CategoryTable({
               filtered.map((cat) => (
                 <tr
                   key={cat.id}
-                  style={{
-                    borderBottom: "1px solid var(--border)",
-                    background: "var(--bg-card)",
-                    transition: "background 0.1s",
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "var(--bg-hover)")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "var(--bg-card)")
-                  }
+                  className="border-b border-border bg-card hover:bg-accent/30 transition-colors"
                 >
-                  <td style={tdStyle}>
-                    <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
-                      {cat.name}
-                    </span>
+                  <td className="px-4 h-12 align-middle text-sm">
+                    <span className="font-medium text-foreground">{cat.name}</span>
                   </td>
-                  <td style={tdStyle}>
-                    <code
-                      style={{
-                        background: "var(--bg-input)",
-                        borderRadius: 3,
-                        padding: "2px 6px",
-                        fontSize: 12,
-                        color: "var(--text-secondary)",
-                      }}
-                    >
+                  <td className="px-4 h-12 align-middle text-sm">
+                    <code className="bg-muted rounded px-1.5 py-0.5 text-xs text-muted-foreground">
                       {cat.slug}
                     </code>
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-secondary)", maxWidth: 240 }}>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                      {cat.description || "—"}
+                  <td className="px-4 h-12 align-middle text-sm text-muted-foreground max-w-[240px]">
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap block">
+                      {cat.description || "\u2014"}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-muted)", fontSize: 12 }}>
+                  <td className="px-4 h-12 align-middle text-xs text-muted-foreground">
                     {cat.id}
                   </td>
                   {showActions && (
-                    <td style={{ ...tdStyle, textAlign: "right" }}>
-                      {onEdit && (
-                        <button
-                          onClick={() => canWrite && onEdit(cat)}
-                          disabled={!canWrite}
-                          title={!canWrite ? "Insufficient permissions" : "Edit"}
-                          className="btn-icon btn-icon-edit"
-                        >
-                          ✏️
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          onClick={() => canWrite && onDelete(cat.id)}
-                          disabled={!canWrite}
-                          title={!canWrite ? "Insufficient permissions" : "Delete"}
-                          className="btn-icon btn-icon-delete"
-                        >
-                          🗑
-                        </button>
-                      )}
+                    <td className="px-4 h-12 align-middle text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {onEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => canWrite && onEdit(cat)}
+                            disabled={!canWrite}
+                            title={!canWrite ? "Insufficient permissions" : "Edit"}
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => canWrite && onDelete(cat.id)}
+                            disabled={!canWrite}
+                            title={!canWrite ? "Insufficient permissions" : "Delete"}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -175,20 +128,3 @@ export default function CategoryTable({
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: "10px 16px",
-  textAlign: "left",
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  color: "var(--text-muted)",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "0 16px",
-  fontSize: 14,
-  height: 48,
-  verticalAlign: "middle",
-};

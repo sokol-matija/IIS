@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useReducer, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   getCategories,
@@ -8,102 +8,146 @@ import {
   type Category,
 } from "../api/categories";
 import CategoryTable from "../components/CategoryTable";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+// ── CRUD state ────────────────────────────────────────────────────────────────
+interface CrudState {
+  categories: Category[];
+  loading: boolean;
+  error: string;
+  showForm: boolean;
+  formMode: "create" | "edit";
+  editId: number | null;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+type CrudAction =
+  | { type: "load_start" }
+  | { type: "load_success"; categories: Category[] }
+  | { type: "load_error"; error: string }
+  | { type: "open_create" }
+  | { type: "open_edit"; cat: Category }
+  | { type: "cancel" }
+  | { type: "set_name"; value: string }
+  | { type: "set_slug"; value: string }
+  | { type: "set_description"; value: string }
+  | { type: "submit_error"; error: string };
+
+const crudInit: CrudState = {
+  categories: [], loading: false, error: "",
+  showForm: false, formMode: "create", editId: null,
+  name: "", slug: "", description: "",
+};
+
+function crudReducer(state: CrudState, action: CrudAction): CrudState {
+  switch (action.type) {
+    case "load_start":   return { ...state, loading: true, error: "" };
+    case "load_success": return { ...state, loading: false, categories: action.categories };
+    case "load_error":   return { ...state, loading: false, error: action.error };
+    case "open_create":  return { ...state, showForm: true, formMode: "create", editId: null, name: "", slug: "", description: "" };
+    case "open_edit":    return { ...state, showForm: true, formMode: "edit", editId: action.cat.id, name: action.cat.name, slug: action.cat.slug, description: action.cat.description || "" };
+    case "cancel":       return { ...state, showForm: false, formMode: "create", editId: null, name: "", slug: "", description: "" };
+    case "set_name":     return { ...state, name: action.value };
+    case "set_slug":     return { ...state, slug: action.value };
+    case "set_description": return { ...state, description: action.value };
+    case "submit_error": return { ...state, error: action.error };
+  }
+}
+
+// ── GraphQL state ─────────────────────────────────────────────────────────────
+interface GqlState {
+  open: boolean;
+  query: string;
+  result: string;
+  loading: boolean;
+}
+
+type GqlAction =
+  | { type: "toggle" }
+  | { type: "set_query"; value: string }
+  | { type: "run_start" }
+  | { type: "run_done"; result: string };
+
+const gqlInit: GqlState = {
+  open: false,
+  query: `{\n  categories {\n    id\n    name\n    slug\n    description\n  }\n}`,
+  result: "",
+  loading: false,
+};
+
+function gqlReducer(state: GqlState, action: GqlAction): GqlState {
+  switch (action.type) {
+    case "toggle":    return { ...state, open: !state.open };
+    case "set_query": return { ...state, query: action.value };
+    case "run_start": return { ...state, loading: true, result: "" };
+    case "run_done":  return { ...state, loading: false, result: action.result };
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function Task5Page() {
   const { getToken, role } = useAuth();
   const canWrite = role === "full-access";
 
-  // CRUD state
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editId, setEditId] = useState<number | null>(null);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [showForm, setShowForm] = useState(false);
-
-  // GraphQL state
-  const [gqlOpen, setGqlOpen] = useState(false);
-  const [gqlQuery, setGqlQuery] = useState(
-    `{\n  categories {\n    id\n    name\n    slug\n    description\n  }\n}`
-  );
-  const [gqlResult, setGqlResult] = useState("");
-  const [gqlLoading, setGqlLoading] = useState(false);
+  const [crud, crudDispatch] = useReducer(crudReducer, crudInit);
+  const [gql, gqlDispatch] = useReducer(gqlReducer, gqlInit);
 
   const loadCategories = useCallback(async () => {
-    setLoading(true);
+    crudDispatch({ type: "load_start" });
     try {
       const token = await getToken();
       if (token) {
         const cats = await getCategories(token);
-        setCategories(cats);
+        crudDispatch({ type: "load_success", categories: cats });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
+      crudDispatch({ type: "load_error", error: err instanceof Error ? err.message : "Failed to load" });
     }
   }, [getToken]);
 
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    setError("");
     const token = await getToken();
     if (!token) return;
-
     try {
-      if (formMode === "create") {
-        await createCategory(token, { name, slug, description });
-      } else if (editId !== null) {
-        await updateCategory(token, editId, { name, slug, description });
+      if (crud.formMode === "create") {
+        await createCategory(token, { name: crud.name, slug: crud.slug, description: crud.description });
+      } else if (crud.editId !== null) {
+        await updateCategory(token, crud.editId, { name: crud.name, slug: crud.slug, description: crud.description });
       }
-      setName("");
-      setSlug("");
-      setDescription("");
-      setFormMode("create");
-      setEditId(null);
-      setShowForm(false);
+      crudDispatch({ type: "cancel" });
       await loadCategories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Operation failed");
+      crudDispatch({ type: "submit_error", error: err instanceof Error ? err.message : "Operation failed" });
     }
-  };
-
-  const handleEdit = (cat: Category) => {
-    setFormMode("edit");
-    setEditId(cat.id);
-    setName(cat.name);
-    setSlug(cat.slug);
-    setDescription(cat.description || "");
-    setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this category?")) return;
     const token = await getToken();
     if (!token) return;
-
     try {
       await deleteCategory(token, id);
       await loadCategories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      crudDispatch({ type: "submit_error", error: err instanceof Error ? err.message : "Delete failed" });
     }
   };
 
   const handleGraphQL = async () => {
-    setGqlLoading(true);
-    setGqlResult("");
+    gqlDispatch({ type: "run_start" });
     const token = await getToken();
-
     try {
       const res = await fetch(`${API_URL}/graphql`, {
         method: "POST",
@@ -111,144 +155,91 @@ export default function Task5Page() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ query: gqlQuery }),
+        body: JSON.stringify({ query: gql.query }),
       });
       const data = await res.json();
-      setGqlResult(JSON.stringify(data, null, 2));
+      gqlDispatch({ type: "run_done", result: JSON.stringify(data, null, 2) });
     } catch (err) {
-      setGqlResult(err instanceof Error ? err.message : "GraphQL request failed");
-    } finally {
-      setGqlLoading(false);
+      gqlDispatch({ type: "run_done", result: err instanceof Error ? err.message : "GraphQL request failed" });
     }
   };
 
-  const handleCancelEdit = () => {
-    setFormMode("create");
-    setEditId(null);
-    setName("");
-    setSlug("");
-    setDescription("");
-    setShowForm(false);
-  };
-
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="page-title">Task 5 — Categories</h1>
-          <p className="page-subtitle">REST CRUD operations and GraphQL queries on categories.</p>
+          <h1 className="text-2xl font-semibold">Task 5 — Categories</h1>
+          <p className="text-sm text-muted-foreground mt-1">REST CRUD operations and GraphQL queries on categories.</p>
         </div>
         {canWrite && (
-          <button
-            className="btn-primary"
-            style={{ height: 40, padding: "0 20px" }}
-            onClick={() => {
-              setFormMode("create");
-              setName("");
-              setSlug("");
-              setDescription("");
-              setShowForm(true);
-            }}
-          >
-            + Add an entry
-          </button>
+          <Button className="h-10 px-5" onClick={() => crudDispatch({ type: "open_create" })}>
+            <Plus size={16} />
+            Add an entry
+          </Button>
         )}
       </div>
 
-      {error && (
-        <div className="alert-error" style={{ marginBottom: 20 }}>
-          {error}
+      {crud.error && (
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mb-5">
+          {crud.error}
         </div>
       )}
 
       {/* Create / Edit Form */}
-      {showForm && (
-        <div className="card" style={{ marginBottom: 24 }}>
-          <h2
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-secondary)",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: 20,
-            }}
-          >
-            {formMode === "create" ? "New Category" : "Edit Category"}
-          </h2>
-          <form onSubmit={handleSubmit}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 16,
-                marginBottom: 16,
-              }}
-            >
+      {crud.showForm && (
+        <GradientCard variant="sunset" title={crud.formMode === "create" ? "New Category" : "Edit Category"}>
+          <form onSubmit={handleSubmit} className="mt-4">
+            <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="field-label" htmlFor="cat-name">
-                  Name
-                </label>
-                <input
+                <Label htmlFor="cat-name" className="mb-1.5">Name</Label>
+                <Input
                   id="cat-name"
-                  className="input"
                   placeholder="Category name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={crud.name}
+                  onChange={(e) => crudDispatch({ type: "set_name", value: e.target.value })}
                   required
                 />
               </div>
               <div>
-                <label className="field-label" htmlFor="cat-slug">
-                  Slug
-                </label>
-                <input
+                <Label htmlFor="cat-slug" className="mb-1.5">Slug</Label>
+                <Input
                   id="cat-slug"
-                  className="input"
                   placeholder="category-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  value={crud.slug}
+                  onChange={(e) => crudDispatch({ type: "set_slug", value: e.target.value })}
                   required
                 />
               </div>
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <label className="field-label" htmlFor="cat-desc">
-                Description
-              </label>
-              <input
+            <div className="mb-5">
+              <Label htmlFor="cat-desc" className="mb-1.5">Description</Label>
+              <Input
                 id="cat-desc"
-                className="input"
                 placeholder="Optional description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={crud.description}
+                onChange={(e) => crudDispatch({ type: "set_description", value: e.target.value })}
               />
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="submit" className="btn-primary" style={{ height: 36, padding: "0 20px" }}>
-                {formMode === "create" ? "Create" : "Update"}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ height: 36, padding: "0 16px" }}
-                onClick={handleCancelEdit}
-              >
+            <div className="flex gap-2">
+              <Button type="submit" className="h-9 px-5">
+                {crud.formMode === "create" ? "Create" : "Update"}
+              </Button>
+              <Button type="button" variant="outline" className="h-9 px-4" onClick={() => crudDispatch({ type: "cancel" })}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </GradientCard>
       )}
 
       {/* Categories Table */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        {loading ? (
-          <p style={{ color: "var(--text-muted)", textAlign: "center" }}>Loading...</p>
+      <div className={`bg-card border border-border rounded-xl p-6 mb-6 ${crud.showForm ? "mt-6" : ""}`}>
+        {crud.loading ? (
+          <p className="text-muted-foreground text-center">Loading...</p>
         ) : (
           <CategoryTable
-            categories={categories}
-            onEdit={handleEdit}
+            categories={crud.categories}
+            onEdit={(cat) => crudDispatch({ type: "open_edit", cat })}
             onDelete={handleDelete}
             canWrite={canWrite}
           />
@@ -256,62 +247,44 @@ export default function Task5Page() {
       </div>
 
       {/* GraphQL Collapsible Panel */}
-      <div className="card">
-        <button
-          onClick={() => setGqlOpen((o) => !o)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            background: "none",
-            border: "none",
-            color: "var(--text-primary)",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-secondary)",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-            }}
+      <GradientCard variant="intense" title="GraphQL Explorer">
+        <div className="mt-2">
+          <button
+            onClick={() => gqlDispatch({ type: "toggle" })}
+            className="flex items-center justify-between w-full bg-transparent border-0 text-foreground cursor-pointer p-0"
           >
-            GraphQL Explorer
-          </span>
-          <span style={{ color: "var(--text-muted)", fontSize: 14 }}>
-            {gqlOpen ? "▲" : "▼"}
-          </span>
-        </button>
-
-        {gqlOpen && (
-          <div style={{ marginTop: 20 }}>
-            <label className="field-label">Query</label>
-            <textarea
-              className="textarea"
-              value={gqlQuery}
-              onChange={(e) => setGqlQuery(e.target.value)}
-              rows={8}
-              style={{ marginBottom: 12 }}
-            />
-            <button
-              onClick={handleGraphQL}
-              disabled={gqlLoading}
-              className="btn-primary"
-              style={{ height: 36, padding: "0 20px" }}
-            >
-              {gqlLoading ? "Running..." : "Run Query"}
-            </button>
-
-            {gqlResult && (
-              <pre className="json-viewer">{gqlResult}</pre>
+            <span className="text-muted-foreground text-sm">
+              {gql.open ? "Collapse" : "Expand query editor"}
+            </span>
+            {gql.open ? (
+              <ChevronUp size={16} className="text-muted-foreground" />
+            ) : (
+              <ChevronDown size={16} className="text-muted-foreground" />
             )}
-          </div>
-        )}
-      </div>
+          </button>
+
+          {gql.open && (
+            <div className="mt-4">
+              <Label className="mb-1.5">Query</Label>
+              <Textarea
+                value={gql.query}
+                onChange={(e) => gqlDispatch({ type: "set_query", value: e.target.value })}
+                rows={8}
+                className="mb-3"
+              />
+              <Button onClick={handleGraphQL} disabled={gql.loading} className="h-9 px-5">
+                {gql.loading ? "Running..." : "Run Query"}
+              </Button>
+
+              {gql.result && (
+                <pre className="rounded-lg bg-muted/50 border p-4 font-mono text-xs text-cyan-300 overflow-auto max-h-96 mt-3">
+                  {gql.result}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      </GradientCard>
     </div>
   );
 }

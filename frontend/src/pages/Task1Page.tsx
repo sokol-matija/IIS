@@ -1,5 +1,9 @@
-import { useState, useRef, type FormEvent, type ChangeEvent } from "react";
+import React from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { useAuth } from "../context/AuthContext";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Button } from "@/components/ui/button";
+import { FileText, FileJson } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -21,7 +25,7 @@ export default function Task1Page() {
     setJsonFileName(e.target.files?.[0]?.name ?? null);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     setResult(null);
     setLoading(true);
@@ -49,11 +53,11 @@ export default function Task1Page() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="page-title">Task 1 — XML &amp; JSON Upload</h1>
-          <p className="page-subtitle">
+          <h1 className="text-2xl font-semibold">Task 1 — XML &amp; JSON Upload</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Upload an XML file (validated against category.xsd) and a JSON file (validated against
             category.schema.json). On success, the category is saved to the database.
           </p>
@@ -61,118 +65,90 @@ export default function Task1Page() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-            marginBottom: 24,
-          }}
-        >
+        <div className="grid grid-cols-2 gap-4 mb-6">
           {/* XML Card */}
-          <div className="card">
-            <h3
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--text-secondary)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: 16,
-              }}
-            >
-              XML File
-            </h3>
+          <GradientCard variant="neon" title="XML File">
             <label
-              className="upload-zone"
+              className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer transition-colors hover:border-primary hover:bg-primary/5 block mb-3 mt-2"
               htmlFor="xml-upload"
-              style={{ cursor: "pointer", marginBottom: 12 }}
             >
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 4 }}>
+              <div className="mb-2 flex justify-center">
+                <FileText size={28} className="opacity-60" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-1">
                 {xmlFileName ? (
-                  <span style={{ color: "var(--accent)" }}>{xmlFileName}</span>
+                  <span className="text-primary">{xmlFileName}</span>
                 ) : (
                   "Click to select XML file"
                 )}
               </p>
-              <p style={{ color: "var(--text-muted)", fontSize: 11 }}>category.xml</p>
+              <p className="text-[11px] text-muted-foreground">category.xml</p>
               <input
                 id="xml-upload"
                 type="file"
                 ref={xmlRef}
                 accept=".xml"
                 onChange={handleXmlChange}
+                className="hidden"
               />
             </label>
-          </div>
+          </GradientCard>
 
           {/* JSON Card */}
-          <div className="card">
-            <h3
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--text-secondary)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: 16,
-              }}
-            >
-              JSON File
-            </h3>
+          <GradientCard variant="ghost" title="JSON File">
             <label
-              className="upload-zone"
+              className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer transition-colors hover:border-primary hover:bg-primary/5 block mb-3 mt-2"
               htmlFor="json-upload"
-              style={{ cursor: "pointer", marginBottom: 12 }}
             >
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 4 }}>
+              <div className="mb-2 flex justify-center">
+                <FileJson size={28} className="opacity-60" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-1">
                 {jsonFileName ? (
-                  <span style={{ color: "var(--accent)" }}>{jsonFileName}</span>
+                  <span className="text-primary">{jsonFileName}</span>
                 ) : (
                   "Click to select JSON file"
                 )}
               </p>
-              <p style={{ color: "var(--text-muted)", fontSize: 11 }}>category.json</p>
+              <p className="text-[11px] text-muted-foreground">category.json</p>
               <input
                 id="json-upload"
                 type="file"
                 ref={jsonRef}
                 accept=".json"
                 onChange={handleJsonChange}
+                className="hidden"
               />
             </label>
-          </div>
+          </GradientCard>
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading || isReadOnly}
-          className="btn-primary"
-          style={{ height: 40, padding: "0 24px" }}
+          className="h-10 px-6"
         >
           {loading ? "Uploading..." : isReadOnly ? "Read-Only — Upload Disabled" : "Upload & Validate"}
-        </button>
+        </Button>
       </form>
 
       {result && (
-        <div style={{ marginTop: 24 }}>
+        <div className="mt-6">
           {result.errors && result.errors.length > 0 ? (
-            <div className="card alert-error" style={{ padding: 20 }}>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>Validation Errors</p>
-              <ul style={{ paddingLeft: 20, margin: 0 }}>
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-5 text-destructive">
+              <p className="font-semibold mb-2">Validation Errors</p>
+              <ul className="pl-5 m-0 list-disc">
                 {result.errors.map((err) => (
-                  <li key={err} style={{ marginBottom: 4 }}>
+                  <li key={err} className="mb-1">
                     {err}
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <div className="card alert-success" style={{ padding: 20 }}>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>Category saved successfully</p>
-              <pre className="json-viewer" style={{ marginTop: 0 }}>
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-5 text-emerald-400">
+              <p className="font-semibold mb-2">Category saved successfully</p>
+              <pre className="rounded-lg bg-muted/50 border p-4 font-mono text-xs text-cyan-300 overflow-auto max-h-96 mt-3">
                 {JSON.stringify(result.data, null, 2)}
               </pre>
             </div>

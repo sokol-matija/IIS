@@ -1,4 +1,9 @@
-import { useState, type FormEvent } from "react";
+import React from "react";
+import { useState } from "react";
+import { GradientCard } from "@msokol/gradient-card-component";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -10,15 +15,15 @@ interface WeatherStation {
 
 function TempBadge({ temp }: { temp: string }) {
   const num = parseFloat(temp);
-  let className = "badge-warning";
+  let variant: "warning" | "destructive" | "success" = "warning";
   if (!isNaN(num)) {
-    if (num <= 5) className = "badge-error";
-    else if (num >= 25) className = "badge-success";
+    if (num <= 5) variant = "destructive";
+    else if (num >= 25) variant = "success";
   }
   return (
-    <span className={className}>
+    <Badge variant={variant}>
       {temp} °C
-    </span>
+    </Badge>
   );
 }
 
@@ -28,7 +33,7 @@ export default function Task4Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSearch = async (e: FormEvent) => {
+  const handleSearch = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     setError("");
     setStations([]);
@@ -50,107 +55,67 @@ export default function Task4Page() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="page-title">Task 4 — Weather / gRPC</h1>
-          <p className="page-subtitle">
+          <h1 className="text-2xl font-semibold">Task 4 — Weather / gRPC</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Search for weather data from Croatian weather stations via gRPC.
           </p>
         </div>
       </div>
 
       {/* Search Card */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <h2
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            marginBottom: 16,
-          }}
-        >
-          Station Search
-        </h2>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
-          <input
+      <GradientCard
+        variant="lavender"
+        title="Station Search"
+        description="Enter a city name to find weather stations"
+      >
+        <form onSubmit={handleSearch} className="flex gap-3 mt-2">
+          <Input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="City name (e.g. Zagreb)"
-            className="input"
-            style={{ flex: 1 }}
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary"
-            style={{ height: 40, padding: "0 20px" }}
-          >
+          <Button type="submit" disabled={loading} className="h-10 px-5">
             {loading ? "Searching..." : "Get Temperature"}
-          </button>
+          </Button>
         </form>
 
         {error && (
-          <div className="alert-error" style={{ marginTop: 16 }}>
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mt-4">
             {error}
           </div>
         )}
-      </div>
+      </GradientCard>
 
       {/* Results Grid */}
       {stations.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 mt-6">
           {stations.map((s) => (
-            <div
+            <GradientCard
               key={s.city}
-              className="card"
-              style={{ padding: 20 }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 15,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {s.city}
+              variant="ember"
+              title={s.city}
+              footer={
+                <span className="text-muted-foreground text-sm">
+                  {s.description || "\u2014"}
                 </span>
+              }
+            >
+              <div className="mt-2">
                 <TempBadge temp={s.temperature} />
               </div>
-              <p
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: 13,
-                  margin: 0,
-                }}
-              >
-                {s.description || "—"}
-              </p>
-            </div>
+            </GradientCard>
           ))}
         </div>
       )}
 
       {stations.length === 0 && !loading && !error && (
-        <div className="card">
-          <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: 14 }}>
+        <div className="bg-card border border-border rounded-xl p-6 mt-6">
+          <p className="text-muted-foreground text-center text-sm">
             Enter a city name to search weather stations.
           </p>
         </div>

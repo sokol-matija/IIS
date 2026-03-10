@@ -5,20 +5,20 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent text-sm font-semibold whitespace-nowrap transition-all duration-200 outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent text-sm font-semibold whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-br from-violet-500 to-blue-600 text-white shadow-md shadow-violet-500/25 hover:from-violet-400 hover:to-blue-500 hover:shadow-lg hover:shadow-violet-500/30 hover:-translate-y-px active:translate-y-0 active:shadow-sm",
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/95",
         outline:
-          "border-border bg-transparent text-foreground hover:bg-muted hover:border-primary/50 hover:-translate-y-px active:translate-y-0",
+          "border-border bg-transparent text-foreground hover:bg-muted hover:border-border active:bg-muted/70",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/70 hover:-translate-y-px active:translate-y-0",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/70 active:bg-secondary/80",
         ghost:
           "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/70",
         destructive:
-          "bg-destructive/15 text-destructive border-destructive/20 hover:bg-destructive/25 hover:border-destructive/40 hover:-translate-y-px active:translate-y-0",
+          "bg-destructive/15 text-destructive border-destructive/20 hover:bg-destructive/25 hover:border-destructive/40 active:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

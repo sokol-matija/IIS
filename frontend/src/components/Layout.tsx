@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -8,8 +9,18 @@ import {
   LayoutList,
   Settings,
   LogOut,
+  Layers,
 } from "lucide-react";
+import { update } from "jdenticon";
 import { cn } from "@/lib/utils";
+
+function Identicon({ value, size }: { value: string; size: number }) {
+  const ref = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    if (ref.current) update(ref.current, value);
+  }, [value]);
+  return <svg ref={ref} width={size} height={size} />;
+}
 
 const navItems = [
   { to: "/task1", label: "Upload", icon: UploadCloud },
@@ -20,15 +31,6 @@ const navItems = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-function getInitials(email: string | null): string {
-  if (!email) return "?";
-  return email
-    .split("@")[0]
-    .split(/[._-]/)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .slice(0, 2)
-    .join("");
-}
 
 export default function Layout() {
   const { email, role, logout } = useAuth();
@@ -38,8 +40,8 @@ export default function Layout() {
       {/* Sidebar */}
       <nav className="w-14 min-w-14 bg-sidebar flex flex-col items-center border-r border-sidebar-border py-3 gap-0">
         {/* Logo */}
-        <div className="w-9 h-9 rounded-md bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-white font-bold text-[11px] mb-5 shrink-0 tracking-tight shadow-[0_2px_12px_rgba(124,58,237,0.4)]">
-          IIS
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center mb-5 shrink-0 shadow-[0_2px_16px_rgba(124,58,237,0.5)] ring-1 ring-white/10">
+          <Layers size={17} className="text-white" strokeWidth={1.5} />
         </div>
 
         {/* Nav items */}
@@ -76,9 +78,9 @@ export default function Layout() {
           {/* Avatar */}
           <div
             title={email ?? ""}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-600 text-white flex items-center justify-center text-[11px] font-bold cursor-default shrink-0"
+            className="w-8 h-8 rounded-full overflow-hidden cursor-default shrink-0 ring-1 ring-border"
           >
-            {getInitials(email)}
+            <Identicon value={email ?? "?"} size={32} />
           </div>
 
           {/* Logout */}

@@ -6,6 +6,7 @@ import { GradientCard } from "@msokol/gradient-card-component";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Layers, LogIn, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -34,10 +35,11 @@ export default function LoginPage() {
     <div className="flex justify-center items-center min-h-screen bg-background">
       <div className="w-[400px]">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 text-white font-extrabold text-xl mb-4 tracking-tight shadow-[0_4px_20px_rgba(124,58,237,0.4)]">
-            IIS
+        <div className="flex flex-col items-center mb-8 gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-[0_8px_32px_rgba(124,58,237,0.5)] ring-1 ring-white/10">
+            <Layers size={28} className="text-white" strokeWidth={1.5} />
           </div>
+          <span className="text-xl font-bold tracking-tight text-foreground">IIS</span>
         </div>
 
         <GradientCard
@@ -79,9 +81,19 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-10 text-sm justify-center"
+              className="w-full h-11 text-sm justify-center gap-2"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <LogIn size={15} />
+                </>
+              )}
             </Button>
 
             {error && (

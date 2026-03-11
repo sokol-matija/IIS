@@ -37,11 +37,18 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <nav className="w-14 min-w-14 bg-sidebar flex flex-col items-center border-r border-sidebar-border py-3 gap-0">
-        {/* Logo */}
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center mb-5 shrink-0 shadow-[0_2px_16px_rgba(124,58,237,0.5)] ring-1 ring-white/10">
-          <Layers size={17} className="text-white" strokeWidth={1.5} />
+      {/* Glass Sidebar */}
+      <nav className="w-14 min-w-14 flex flex-col items-center border-r border-white/10 py-3 gap-0 backdrop-blur-xl"
+           style={{ background: "rgba(255,255,255,0.04)" }}>
+
+        {/* Logo — glowing frosted orb */}
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-5 shrink-0"
+             style={{
+               background: "linear-gradient(135deg, rgba(139,92,246,0.9) 0%, rgba(6,182,212,0.85) 100%)",
+               boxShadow: "0 0 20px rgba(139,92,246,0.55), 0 0 8px rgba(6,182,212,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
+               border: "1px solid rgba(255,255,255,0.18)",
+             }}>
+          <Layers size={17} className="text-white drop-shadow-sm" strokeWidth={1.5} />
         </div>
 
         {/* Nav items */}
@@ -53,19 +60,29 @@ export default function Layout() {
               title={item.label}
               className={({ isActive }) =>
                 cn(
-                  "w-full h-10 rounded-md flex items-center justify-center transition-colors",
+                  "w-full h-10 rounded-lg flex items-center justify-center transition-all duration-200",
                   isActive
-                    ? "bg-primary/20 ring-1 ring-primary/40 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "text-white"
+                    : "text-white/40 hover:text-white/80"
                 )
               }
+              style={({ isActive }) => isActive ? {
+                background: "rgba(139,92,246,0.20)",
+                boxShadow: "0 0 12px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.10)",
+                border: "1px solid rgba(139,92,246,0.35)",
+              } : {
+                background: "transparent",
+                border: "1px solid transparent",
+              }}
             >
               {({ isActive }) => (
                 <item.icon
                   size={18}
                   className={cn(
-                    "transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground opacity-70"
+                    "transition-all duration-200",
+                    isActive
+                      ? "text-violet-300 drop-shadow-[0_0_6px_rgba(139,92,246,0.8)]"
+                      : "text-white/40 group-hover:text-white/80"
                   )}
                 />
               )}
@@ -74,11 +91,15 @@ export default function Layout() {
         </div>
 
         {/* Bottom: user avatar + logout */}
-        <div className="flex flex-col items-center gap-2 pt-3 border-t border-sidebar-border w-full">
-          {/* Avatar */}
+        <div className="flex flex-col items-center gap-2 pt-3 w-full px-2"
+             style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          {/* Avatar with glass ring */}
           <div
             title={email ?? ""}
-            className="w-8 h-8 rounded-full overflow-hidden cursor-default shrink-0 ring-1 ring-border"
+            className="w-8 h-8 rounded-full overflow-hidden cursor-default shrink-0"
+            style={{
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.15), 0 0 8px rgba(139,92,246,0.2)",
+            }}
           >
             <Identicon value={email ?? "?"} size={32} />
           </div>
@@ -87,7 +108,16 @@ export default function Layout() {
           <button
             onClick={logout}
             title="Log out"
-            className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 transition-all duration-200 hover:text-red-400"
+            style={{ border: "1px solid transparent" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.12)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.25)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "transparent";
+            }}
           >
             <LogOut size={16} />
           </button>
@@ -95,17 +125,24 @@ export default function Layout() {
           {/* Role badge */}
           <span
             className={cn(
-              "text-[8px] font-bold uppercase tracking-wide text-center leading-tight",
-              role === "full-access" ? "text-emerald-400" : "text-amber-400"
+              "text-[8px] font-bold uppercase tracking-widest text-center leading-tight",
+              role === "full-access"
+                ? "text-emerald-400"
+                : "text-amber-400"
             )}
+            style={{
+              textShadow: role === "full-access"
+                ? "0 0 8px rgba(52,211,153,0.6)"
+                : "0 0 8px rgba(251,191,36,0.6)",
+            }}
           >
             {role === "full-access" ? "Admin" : "Read"}
           </span>
         </div>
       </nav>
 
-      {/* Main area */}
-      <main className="flex-1 overflow-auto bg-background flex flex-col">
+      {/* Main area — let background show through */}
+      <main className="flex-1 overflow-auto flex flex-col" style={{ background: "transparent" }}>
         <Outlet />
       </main>
     </div>

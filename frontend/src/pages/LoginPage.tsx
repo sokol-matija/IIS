@@ -32,14 +32,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-background">
+    <div className="flex justify-center items-center min-h-screen">
       <div className="w-[400px]">
-        {/* Logo */}
+        {/* Logo — glowing frosted badge */}
         <div className="flex flex-col items-center mb-8 gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-[0_8px_32px_rgba(124,58,237,0.5)] ring-1 ring-white/10">
-            <Layers size={28} className="text-white" strokeWidth={1.5} />
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(139,92,246,0.85) 0%, rgba(6,182,212,0.80) 100%)",
+              boxShadow: "0 0 40px rgba(139,92,246,0.50), 0 0 16px rgba(6,182,212,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
+              border: "1px solid rgba(255,255,255,0.20)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <Layers size={30} className="text-white" strokeWidth={1.5} />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">IIS</span>
+          <span
+            className="text-2xl font-bold tracking-tight text-white/90"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            IIS
+          </span>
         </div>
 
         <GradientCard
@@ -49,7 +62,7 @@ export default function LoginPage() {
         >
           <form onSubmit={handleSubmit} className="mt-2">
             <div className="mb-5">
-              <Label htmlFor="email" className="mb-1.5">
+              <Label htmlFor="email" className="mb-1.5 text-white/70 text-xs font-medium uppercase tracking-wider">
                 Email
               </Label>
               <Input
@@ -64,7 +77,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mb-7">
-              <Label htmlFor="password" className="mb-1.5">
+              <Label htmlFor="password" className="mb-1.5 text-white/70 text-xs font-medium uppercase tracking-wider">
                 Password
               </Label>
               <Input
@@ -97,14 +110,22 @@ export default function LoginPage() {
             </Button>
 
             {error && (
-              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mt-4">
+              <div
+                className="rounded-xl p-4 mt-4 text-sm"
+                style={{
+                  background: "rgba(239,68,68,0.10)",
+                  border: "1px solid rgba(239,68,68,0.25)",
+                  color: "rgba(252,165,165,0.95)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
                 {error}
               </div>
             )}
           </form>
         </GradientCard>
 
-        <p className="text-center mt-5 text-muted-foreground text-xs">
+        <p className="text-center mt-5 text-white/30 text-xs">
           admin@iis.hr / admin123 &bull; reader@iis.hr / reader123
         </p>
       </div>

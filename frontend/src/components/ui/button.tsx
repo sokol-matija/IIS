@@ -5,21 +5,26 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent text-sm font-semibold whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-all duration-200 outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
+        /* Glass primary — purple-to-cyan gradient with glow */
         default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/95",
+          "bg-gradient-to-r from-violet-500/80 to-cyan-500/70 border-white/20 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)] backdrop-blur-sm hover:from-violet-500/90 hover:to-cyan-500/85 hover:shadow-[0_0_24px_rgba(139,92,246,0.55)] hover:border-white/30 active:scale-[0.98]",
+        /* Glass outline */
         outline:
-          "border-border bg-transparent text-foreground hover:bg-muted hover:border-border active:bg-muted/70",
+          "bg-white/5 border-white/15 text-white/80 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 hover:text-white active:bg-white/8",
+        /* Glass secondary */
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/70 active:bg-secondary/80",
+          "bg-white/8 border-white/10 text-white/75 backdrop-blur-sm hover:bg-white/14 hover:text-white active:bg-white/10",
+        /* Ghost — minimal glass */
         ghost:
-          "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/70",
+          "bg-transparent border-transparent text-white/50 hover:bg-white/8 hover:text-white/85 hover:border-white/10 active:bg-white/5",
+        /* Destructive glass */
         destructive:
-          "bg-destructive/15 text-destructive border-destructive/20 hover:bg-destructive/25 hover:border-destructive/40 active:bg-destructive/30",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-red-500/15 border-red-500/25 text-red-300 backdrop-blur-sm hover:bg-red-500/25 hover:border-red-500/40 hover:shadow-[0_0_12px_rgba(239,68,68,0.25)] active:bg-red-500/30",
+        link: "border-transparent text-violet-400 underline-offset-4 hover:underline hover:text-violet-300",
       },
       size: {
         default: "h-9 px-4",

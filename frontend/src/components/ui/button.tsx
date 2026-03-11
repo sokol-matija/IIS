@@ -9,9 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /* Glass primary — purple-to-cyan gradient with glow */
+        /* Glass primary — lavender gradient with glow */
         default:
-          "bg-gradient-to-r from-violet-500/80 to-cyan-500/70 border-white/20 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)] backdrop-blur-sm hover:from-violet-500/90 hover:to-cyan-500/85 hover:shadow-[0_0_24px_rgba(139,92,246,0.55)] hover:border-white/30 active:scale-[0.98]",
+          "bg-gradient-to-r from-[#a29bfe]/80 to-[#dfbaf4]/70 border-white/20 text-white shadow-[0_0_16px_rgba(162,155,254,0.35)] backdrop-blur-sm hover:from-[#a29bfe]/90 hover:to-[#dfbaf4]/85 hover:shadow-[0_0_24px_rgba(162,155,254,0.55)] hover:border-white/30 active:scale-[0.98]",
         /* Glass outline */
         outline:
           "bg-white/5 border-white/15 text-white/80 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 hover:text-white active:bg-white/8",

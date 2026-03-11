@@ -44,8 +44,8 @@ export default function Layout() {
         {/* Logo — glowing frosted orb */}
         <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-5 shrink-0"
              style={{
-               background: "linear-gradient(135deg, rgba(139,92,246,0.9) 0%, rgba(6,182,212,0.85) 100%)",
-               boxShadow: "0 0 20px rgba(139,92,246,0.55), 0 0 8px rgba(6,182,212,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
+               background: "linear-gradient(135deg, rgba(162,155,254,0.9) 0%, rgba(223,186,244,0.85) 100%)",
+               boxShadow: "0 0 20px rgba(162,155,254,0.55), 0 0 8px rgba(223,186,244,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
                border: "1px solid rgba(255,255,255,0.18)",
              }}>
           <Layers size={17} className="text-white drop-shadow-sm" strokeWidth={1.5} />
@@ -67,9 +67,9 @@ export default function Layout() {
                 )
               }
               style={({ isActive }) => isActive ? {
-                background: "rgba(139,92,246,0.20)",
-                boxShadow: "0 0 12px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.10)",
-                border: "1px solid rgba(139,92,246,0.35)",
+                background: "rgba(162,155,254,0.20)",
+                boxShadow: "0 0 12px rgba(162,155,254,0.25), inset 0 1px 0 rgba(255,255,255,0.10)",
+                border: "1px solid rgba(162,155,254,0.35)",
               } : {
                 background: "transparent",
                 border: "1px solid transparent",
@@ -81,7 +81,7 @@ export default function Layout() {
                   className={cn(
                     "transition-all duration-200",
                     isActive
-                      ? "text-violet-300 drop-shadow-[0_0_6px_rgba(139,92,246,0.8)]"
+                      ? "text-[#a29bfe] drop-shadow-[0_0_6px_rgba(162,155,254,0.8)]"
                       : "text-white/40 group-hover:text-white/80"
                   )}
                 />

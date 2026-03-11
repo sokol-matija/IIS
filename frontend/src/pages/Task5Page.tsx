@@ -187,7 +187,7 @@ export default function Task5Page() {
 
       {/* Create / Edit Form */}
       {crud.showForm && (
-        <GradientCard variant="sunset" title={crud.formMode === "create" ? "New Category" : "Edit Category"}>
+        <GradientCard variant="lavender" title={crud.formMode === "create" ? "New Category" : "Edit Category"}>
           <form onSubmit={handleSubmit} className="mt-4">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
@@ -247,7 +247,7 @@ export default function Task5Page() {
       </div>
 
       {/* GraphQL Collapsible Panel */}
-      <GradientCard variant="intense" title="GraphQL Explorer">
+      <GradientCard variant="lavender" title="GraphQL Explorer">
         <div className="mt-2">
           <button
             onClick={() => gqlDispatch({ type: "toggle" })}

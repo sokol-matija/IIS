@@ -39,8 +39,8 @@ export default function LoginPage() {
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, rgba(139,92,246,0.85) 0%, rgba(6,182,212,0.80) 100%)",
-              boxShadow: "0 0 40px rgba(139,92,246,0.50), 0 0 16px rgba(6,182,212,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
+              background: "linear-gradient(135deg, rgba(162,155,254,0.85) 0%, rgba(223,186,244,0.80) 100%)",
+              boxShadow: "0 0 40px rgba(162,155,254,0.50), 0 0 16px rgba(223,186,244,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
               border: "1px solid rgba(255,255,255,0.20)",
               backdropFilter: "blur(12px)",
             }}
@@ -56,7 +56,7 @@ export default function LoginPage() {
         </div>
 
         <GradientCard
-          variant="aurora"
+          variant="lavender"
           title="Welcome back!"
           description="Log in to your IIS account"
         >

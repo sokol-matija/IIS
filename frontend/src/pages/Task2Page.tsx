@@ -83,7 +83,7 @@ export default function Task2Page() {
 
       {/* Search Card */}
       <GradientCard
-        variant="ocean"
+        variant="lavender"
         title="SOAP Search"
         description="Search categories via SOAP with XPath filtering"
       >

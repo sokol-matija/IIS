@@ -97,7 +97,7 @@ export default function Task4Page() {
           {stations.map((s) => (
             <GradientCard
               key={s.city}
-              variant="ember"
+              variant="lavender"
               title={s.city}
               footer={
                 <span className="text-muted-foreground text-sm">

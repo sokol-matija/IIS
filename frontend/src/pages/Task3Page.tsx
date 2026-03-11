@@ -64,7 +64,7 @@ export default function Task3Page() {
       )}
 
       <GradientCard
-        variant="mint"
+        variant="lavender"
         title="XSD Validation"
         description="Validate categories.xml against category.xsd schema"
       >

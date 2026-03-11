@@ -67,7 +67,7 @@ export default function Task1Page() {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-4 mb-6">
           {/* XML Card */}
-          <GradientCard variant="neon" title="XML File">
+          <GradientCard variant="lavender" title="XML File">
             <label
               className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer transition-colors hover:border-primary hover:bg-primary/5 block mb-3 mt-2"
               htmlFor="xml-upload"

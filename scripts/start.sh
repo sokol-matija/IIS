@@ -1,7 +1,7 @@
 #!/bin/bash
 # Start all IIS services in separate terminal tabs/panes
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Colors
 GREEN='\033[0;32m'

@@ -1,5 +1,5 @@
 import { useReducer, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 import { getSettings, updateSettings } from "../api/settings";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Badge } from "@/components/ui/badge";

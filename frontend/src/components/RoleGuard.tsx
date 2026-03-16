@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 
 interface RoleGuardProps {
   requiredRole: string;

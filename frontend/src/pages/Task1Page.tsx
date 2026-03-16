@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useRef, type ChangeEvent } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Button } from "@/components/ui/button";
 import { FileText, FileJson } from "lucide-react";

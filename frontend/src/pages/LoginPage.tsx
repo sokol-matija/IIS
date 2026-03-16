@@ -1,6 +1,6 @@
 import React from "react";
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Input } from "@/components/ui/input";

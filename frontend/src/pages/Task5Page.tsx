@@ -1,5 +1,5 @@
 import React, { useReducer, useEffect, useCallback } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 import {
   getCategories,
   createCategory,

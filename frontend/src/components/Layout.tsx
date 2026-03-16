@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuthStore as useAuth } from "../store/authStore";
 import {
   UploadCloud,
   Radio,

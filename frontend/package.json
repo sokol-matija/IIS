@@ -33,6 +33,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@locator/babel-jsx": "^0.5.1",
+    "@locator/runtime": "^0.5.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -44,9 +46,11 @@
     "eslint": "^10.0.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^28.1.0",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.57.0",
     "vite": "^6.1.0",
+    "vite-plugin-inspect": "^11.3.3",
     "vitest": "^4.0.18"
   }
 }

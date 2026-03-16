@@ -2,9 +2,21 @@ import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+import locatorPlugin from "@locator/babel-jsx"
+import Inspect from "vite-plugin-inspect"
+import { visualizer } from "rollup-plugin-visualizer"
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [locatorPlugin],
+      },
+    }),
+    tailwindcss(),
+    Inspect(),
+    visualizer({ open: false, filename: "dist/stats.html" }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

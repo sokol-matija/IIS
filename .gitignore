@@ -10,3 +10,7 @@ logs/
 *.tsbuildinfo
 /.serena/project.yml
 /.serena
+/IIS Vjezbe
+/docs
+/.mcp.json
+/scripts/setup.sh

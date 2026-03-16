@@ -1,5 +1,5 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,30 +29,31 @@ function TempBadge({ temp }: { temp: string }) {
 
 export default function Task4Page() {
   const [city, setCity] = useState("");
-  const [stations, setStations] = useState<WeatherStation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleSearch = async (e: React.BaseSyntheticEvent) => {
-    e.preventDefault();
-    setError("");
-    setStations([]);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/api/weather?city=${encodeURIComponent(city)}`);
+  const searchMutation = useMutation({
+    mutationFn: async (cityName: string) => {
+      const res = await fetch(`${API_URL}/api/weather?city=${encodeURIComponent(cityName)}`);
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Request failed");
       }
       const data = await res.json();
-      setStations(data.stations || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch weather");
-    } finally {
-      setLoading(false);
-    }
+      return (data.stations || []) as WeatherStation[];
+    },
+  });
+
+  const handleSearch = (e: React.BaseSyntheticEvent) => {
+    e.preventDefault();
+    searchMutation.mutate(city);
   };
+
+  const stations = searchMutation.data ?? [];
+  const loading = searchMutation.isPending;
+  const error = searchMutation.error instanceof Error
+    ? searchMutation.error.message
+    : searchMutation.error
+    ? "Failed to fetch weather"
+    : "";
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">

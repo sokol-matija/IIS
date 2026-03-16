@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import Task3Page from '../pages/Task3Page'
 import { AuthProvider } from '../context/AuthContext'
+import { createTestQueryClient } from './test-utils'
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <MemoryRouter>
-      <AuthProvider>{children}</AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter>
+        <AuthProvider>{children}</AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 

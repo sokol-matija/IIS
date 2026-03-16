@@ -1,4 +1,5 @@
-import React, { useReducer, useState } from "react";
+import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { searchCategoriesSoap, type SoapCategory } from "../api/soap";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Input } from "@/components/ui/input";
@@ -6,54 +7,38 @@ import { Button } from "@/components/ui/button";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
-interface SearchState {
-  results: SoapCategory[];
-  loading: boolean;
-  error: string;
-}
-
-type SearchAction =
-  | { type: "start" }
-  | { type: "success"; results: SoapCategory[] }
-  | { type: "failure"; error: string };
-
-function searchReducer(_state: SearchState, action: SearchAction): SearchState {
-  switch (action.type) {
-    case "start":   return { results: [], loading: true, error: "" };
-    case "success": return { results: action.results, loading: false, error: "" };
-    case "failure": return { results: [], loading: false, error: action.error };
-  }
-}
-
 export default function Task2Page() {
   const [term, setTerm] = useState("");
-  const [generateMsg, setGenerateMsg] = useState("");
-  const [generateError, setGenerateError] = useState(false);
-  const [search, dispatch] = useReducer(searchReducer, { results: [], loading: false, error: "" });
 
-  const handleGenerateXml = async () => {
-    setGenerateMsg("");
-    setGenerateError(false);
-    try {
+  const generateMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch(`${API_URL}/api/generate-xml`);
       const data = await res.json();
-      setGenerateMsg(data.message || "XML generated successfully");
-    } catch {
-      setGenerateMsg("Failed to generate XML");
-      setGenerateError(true);
-    }
+      return (data.message as string) || "XML generated successfully";
+    },
+  });
+
+  const searchMutation = useMutation({
+    mutationFn: async (searchTerm: string) => {
+      return searchCategoriesSoap(searchTerm);
+    },
+  });
+
+  const handleSearch = (e: React.BaseSyntheticEvent) => {
+    e.preventDefault();
+    searchMutation.mutate(term);
   };
 
-  const handleSearch = async (e: React.BaseSyntheticEvent) => {
-    e.preventDefault();
-    dispatch({ type: "start" });
-    try {
-      const cats = await searchCategoriesSoap(term);
-      dispatch({ type: "success", results: cats });
-    } catch (err) {
-      dispatch({ type: "failure", error: err instanceof Error ? err.message : "SOAP search failed" });
-    }
-  };
+  const generateMsg = generateMutation.data ?? "";
+  const generateError = !!generateMutation.error;
+
+  const results: SoapCategory[] = searchMutation.data ?? [];
+  const searchLoading = searchMutation.isPending;
+  const searchError = searchMutation.error instanceof Error
+    ? searchMutation.error.message
+    : searchMutation.error
+    ? "SOAP search failed"
+    : "";
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">
@@ -64,12 +49,12 @@ export default function Task2Page() {
             Generate XML from the database, then search categories using SOAP with XPath filtering.
           </p>
         </div>
-        <Button variant="outline" onClick={handleGenerateXml} className="h-10 px-5">
+        <Button variant="outline" onClick={() => generateMutation.mutate()} className="h-10 px-5">
           Generate XML
         </Button>
       </div>
 
-      {generateMsg && (
+      {(generateMsg || generateError) && (
         <div
           className={
             generateError
@@ -77,7 +62,11 @@ export default function Task2Page() {
               : "rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400 mb-5"
           }
         >
-          {generateMsg}
+          {generateError
+            ? generateMutation.error instanceof Error
+              ? generateMutation.error.message
+              : "Failed to generate XML"
+            : generateMsg}
         </div>
       )}
 
@@ -95,20 +84,20 @@ export default function Task2Page() {
             placeholder="Search term (e.g. 'electr')"
             className="flex-1"
           />
-          <Button type="submit" disabled={search.loading} className="h-10 px-5">
-            {search.loading ? "Searching..." : "Search via SOAP"}
+          <Button type="submit" disabled={searchLoading} className="h-10 px-5">
+            {searchLoading ? "Searching..." : "Search via SOAP"}
           </Button>
         </form>
 
-        {search.error && (
+        {searchError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive mt-4">
-            {search.error}
+            {searchError}
           </div>
         )}
       </GradientCard>
 
       {/* Results */}
-      {search.results.length > 0 && (
+      {results.length > 0 && (
         <div className="border border-border rounded overflow-hidden mt-5">
           <table className="w-full border-collapse">
             <thead>
@@ -120,7 +109,7 @@ export default function Task2Page() {
               </tr>
             </thead>
             <tbody>
-              {search.results.map((cat) => (
+              {results.map((cat) => (
                 <tr
                   key={cat.id ?? cat.slug}
                   className="border-b border-border bg-card hover:bg-accent/30 transition-colors"
@@ -142,7 +131,7 @@ export default function Task2Page() {
         </div>
       )}
 
-      {search.results.length === 0 && !search.loading && !search.error && (
+      {results.length === 0 && !searchLoading && !searchError && (
         <div className="bg-card border border-border rounded-xl p-6 mt-5">
           <p className="text-muted-foreground text-center text-sm">
             Enter a search term above to query categories via SOAP.

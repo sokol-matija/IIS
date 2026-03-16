@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import Task5Page from '../pages/Task5Page'
 import { AuthProvider } from '../context/AuthContext'
 import * as categoriesApi from '../api/categories'
+import { createTestQueryClient } from './test-utils'
 
 function makeJwt(role: string): string {
   const header = btoa(JSON.stringify({ alg: 'HS256' }))
@@ -31,11 +33,13 @@ function setupWithRole(role: string) {
   )
 
   render(
-    <MemoryRouter>
-      <AuthProvider>
-        <Task5Page />
-      </AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter>
+        <AuthProvider>
+          <Task5Page />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -164,11 +168,13 @@ describe('Task5Page', () => {
     }))
 
     render(
-      <MemoryRouter>
-        <AuthProvider>
-          <Task5Page />
-        </AuthProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter>
+          <AuthProvider>
+            <Task5Page />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     )
 
     await waitFor(() => screen.getByText('Expand query editor'))

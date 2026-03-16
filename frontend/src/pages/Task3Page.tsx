@@ -1,41 +1,38 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Button } from "@/components/ui/button";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function Task3Page() {
-  const [result, setResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [generateMsg, setGenerateMsg] = useState("");
-  const [generateError, setGenerateError] = useState(false);
-
-  const handleGenerate = async () => {
-    setGenerateMsg("");
-    setGenerateError(false);
-    try {
+  const generateMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch(`${API_URL}/api/generate-xml`);
       const data = await res.json();
-      setGenerateMsg(data.message || "XML generated successfully");
-    } catch {
-      setGenerateMsg("Failed to generate XML");
-      setGenerateError(true);
-    }
-  };
+      return (data.message as string) || "XML generated successfully";
+    },
+  });
 
-  const handleValidate = async () => {
-    setResult(null);
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/validate-xml`);
+  const validateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API_URL}/api/validate-xml`).catch(() => {
+        throw new Error("Failed to contact server");
+      });
+      if (!res.ok) throw new Error("Failed to contact server");
       const data = await res.json();
-      setResult(data);
-    } catch {
-      setResult({ valid: false, errors: ["Failed to contact server"] });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data as { valid: boolean; errors: string[] };
+    },
+  });
+
+  const generateMsg = generateMutation.data ?? "";
+  const generateError = !!generateMutation.error;
+
+  const result = validateMutation.data ?? null;
+  const validateError = validateMutation.error
+    ? validateMutation.error instanceof Error
+      ? validateMutation.error.message
+      : "Failed to contact server"
+    : null;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">
@@ -46,12 +43,12 @@ export default function Task3Page() {
             Validate the generated categories.xml against the category.xsd schema.
           </p>
         </div>
-        <Button variant="outline" onClick={handleGenerate} className="h-10 px-5">
+        <Button variant="outline" onClick={() => generateMutation.mutate()} className="h-10 px-5">
           Generate XML
         </Button>
       </div>
 
-      {generateMsg && (
+      {(generateMsg || generateError) && (
         <div
           className={
             generateError
@@ -59,7 +56,11 @@ export default function Task3Page() {
               : "rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-400 mb-5"
           }
         >
-          {generateMsg}
+          {generateError
+            ? generateMutation.error instanceof Error
+              ? generateMutation.error.message
+              : "Failed to generate XML"
+            : generateMsg}
         </div>
       )}
 
@@ -70,12 +71,18 @@ export default function Task3Page() {
       >
         <div className="mt-4">
           <Button
-            onClick={handleValidate}
-            disabled={loading}
+            onClick={() => validateMutation.mutate()}
+            disabled={validateMutation.isPending}
             className="h-10 px-7 text-sm"
           >
-            {loading ? "Validating..." : "Run Validation"}
+            {validateMutation.isPending ? "Validating..." : "Run Validation"}
           </Button>
+
+          {validateError && !result && (
+            <div className="mt-6 rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-destructive">
+              {validateError}
+            </div>
+          )}
 
           {result && (
             <div className="mt-6">

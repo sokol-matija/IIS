@@ -1,5 +1,5 @@
-import React from "react";
-import { useState, useRef, type ChangeEvent } from "react";
+import React, { useState, useRef, type ChangeEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useAuthStore as useAuth } from "../store/authStore";
 import { GradientCard } from "@msokol/gradient-card-component";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,21 @@ const API_URL = import.meta.env.VITE_API_URL || "";
 export default function Task1Page() {
   const { role } = useAuth();
   const isReadOnly = role === "read-only";
-  const [result, setResult] = useState<{ data?: unknown; errors?: string[] } | null>(null);
-  const [loading, setLoading] = useState(false);
   const [xmlFileName, setXmlFileName] = useState<string | null>(null);
   const [jsonFileName, setJsonFileName] = useState<string | null>(null);
   const xmlRef = useRef<HTMLInputElement>(null);
   const jsonRef = useRef<HTMLInputElement>(null);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch(`${API_URL}/api/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      return data as { data?: unknown; errors?: string[] };
+    },
+  });
 
   const handleXmlChange = (e: ChangeEvent<HTMLInputElement>) => {
     setXmlFileName(e.target.files?.[0]?.name ?? null);
@@ -25,11 +34,8 @@ export default function Task1Page() {
     setJsonFileName(e.target.files?.[0]?.name ?? null);
   };
 
-  const handleSubmit = async (e: React.BaseSyntheticEvent) => {
+  const handleSubmit = (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    setResult(null);
-    setLoading(true);
-
     const formData = new FormData();
     if (xmlRef.current?.files?.[0]) {
       formData.append("xmlFile", xmlRef.current.files[0]);
@@ -37,20 +43,16 @@ export default function Task1Page() {
     if (jsonRef.current?.files?.[0]) {
       formData.append("jsonFile", jsonRef.current.files[0]);
     }
-
-    try {
-      const res = await fetch(`${API_URL}/api/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      setResult(data);
-    } catch (err) {
-      setResult({ errors: [err instanceof Error ? err.message : "Upload failed"] });
-    } finally {
-      setLoading(false);
-    }
+    uploadMutation.mutate(formData);
   };
+
+  const result = uploadMutation.data ?? null;
+  const loading = uploadMutation.isPending;
+
+  // If there was a network error (thrown), surface it as an errors array
+  const networkError = uploadMutation.error instanceof Error
+    ? uploadMutation.error.message
+    : null;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">
@@ -131,6 +133,15 @@ export default function Task1Page() {
           {loading ? "Uploading..." : isReadOnly ? "Read-Only — Upload Disabled" : "Upload & Validate"}
         </Button>
       </form>
+
+      {networkError && (
+        <div className="mt-6 rounded-lg bg-destructive/10 border border-destructive/20 p-5 text-destructive">
+          <p className="font-semibold mb-2">Validation Errors</p>
+          <ul className="pl-5 m-0 list-disc">
+            <li className="mb-1">{networkError}</li>
+          </ul>
+        </div>
+      )}
 
       {result && (
         <div className="mt-6">

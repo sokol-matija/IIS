@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
 import Task1Page from '../pages/Task1Page'
 import { AuthProvider } from '../context/AuthContext'
+import { createTestQueryClient } from './test-utils'
 
 function makeJwt(role: string): string {
   const header = btoa(JSON.stringify({ alg: 'HS256' }))
@@ -22,11 +24,13 @@ function setup(role: string) {
     })
   )
   render(
-    <MemoryRouter>
-      <AuthProvider>
-        <Task1Page />
-      </AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter>
+        <AuthProvider>
+          <Task1Page />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -82,11 +86,13 @@ describe('Task1Page', () => {
     )
 
     render(
-      <MemoryRouter>
-        <AuthProvider>
-          <Task1Page />
-        </AuthProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter>
+          <AuthProvider>
+            <Task1Page />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     )
 
     const submitBtn = await screen.findByRole('button', { name: /upload & validate/i })
@@ -116,11 +122,13 @@ describe('Task1Page', () => {
     )
 
     render(
-      <MemoryRouter>
-        <AuthProvider>
-          <Task1Page />
-        </AuthProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter>
+          <AuthProvider>
+            <Task1Page />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     )
 
     const submitBtn = await screen.findByRole('button', { name: /upload & validate/i })

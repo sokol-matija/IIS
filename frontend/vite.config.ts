@@ -15,7 +15,7 @@ export default defineConfig({
     }),
     tailwindcss(),
     Inspect(),
-    visualizer({ open: false, filename: "dist/stats.html" }),
+    visualizer({ open: true, filename: "dist/stats.html" }),
   ],
   resolve: {
     alias: {

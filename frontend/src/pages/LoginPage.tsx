@@ -1,5 +1,5 @@
-import React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { useAuthStore } from "../store/authStore"
 import { useNavigate } from "react-router-dom"
 import { GradientCard } from "@msokol/gradient-card-component"
@@ -7,28 +7,22 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Layers, LogIn, Loader2 } from "lucide-react"
+import { getMutationError } from "@/lib/utils"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
   const { login } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.BaseSyntheticEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  const loginMutation = useMutation({
+    mutationFn: () => login(email, password),
+    onSuccess: () => navigate("/task1"),
+  })
 
-    try {
-      await login(email, password)
-      navigate("/task1")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
-    } finally {
-      setLoading(false)
-    }
+  const handleSubmit = (e: React.BaseSyntheticEvent) => {
+    e.preventDefault()
+    loginMutation.mutate()
   }
 
   return (
@@ -101,10 +95,10 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loginMutation.isPending}
               className="h-11 w-full justify-center gap-2 text-sm"
             >
-              {loading ? (
+              {loginMutation.isPending ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
                   Signing in...
@@ -117,7 +111,7 @@ export default function LoginPage() {
               )}
             </Button>
 
-            {error && (
+            {loginMutation.error && (
               <div
                 className="mt-4 rounded-xl p-4 text-sm"
                 style={{
@@ -127,7 +121,7 @@ export default function LoginPage() {
                   backdropFilter: "blur(8px)",
                 }}
               >
-                {error}
+                {getMutationError(loginMutation.error, "Login failed")}
               </div>
             )}
           </form>

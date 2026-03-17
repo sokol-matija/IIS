@@ -4,24 +4,16 @@ import { searchCategoriesSoap, type SoapCategory } from "../api/soap"
 import { GradientCard } from "@msokol/gradient-card-component"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-
-const API_URL = import.meta.env.VITE_API_URL || ""
+import { useGenerateXmlMutation } from "../hooks/useGenerateXmlMutation"
+import { getMutationError } from "@/lib/utils"
 
 export default function Task2Page() {
   const [term, setTerm] = useState("")
 
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${API_URL}/api/generate-xml`)
-      const data = await res.json()
-      return (data.message as string) || "XML generated successfully"
-    },
-  })
+  const generateMutation = useGenerateXmlMutation()
 
   const searchMutation = useMutation({
-    mutationFn: async (searchTerm: string) => {
-      return searchCategoriesSoap(searchTerm)
-    },
+    mutationFn: (searchTerm: string) => searchCategoriesSoap(searchTerm),
   })
 
   const handleSearch = (e: React.BaseSyntheticEvent) => {
@@ -34,12 +26,7 @@ export default function Task2Page() {
 
   const results: SoapCategory[] = searchMutation.data ?? []
   const searchLoading = searchMutation.isPending
-  const searchError =
-    searchMutation.error instanceof Error
-      ? searchMutation.error.message
-      : searchMutation.error
-        ? "SOAP search failed"
-        : ""
+  const searchError = getMutationError(searchMutation.error, "SOAP search failed")
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">

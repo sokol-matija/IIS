@@ -1,17 +1,13 @@
 import { useMutation } from "@tanstack/react-query"
 import { GradientCard } from "@msokol/gradient-card-component"
 import { Button } from "@/components/ui/button"
+import { useGenerateXmlMutation } from "../hooks/useGenerateXmlMutation"
+import { getMutationError } from "@/lib/utils"
 
 const API_URL = import.meta.env.VITE_API_URL || ""
 
 export default function Task3Page() {
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${API_URL}/api/generate-xml`)
-      const data = await res.json()
-      return (data.message as string) || "XML generated successfully"
-    },
-  })
+  const generateMutation = useGenerateXmlMutation()
 
   const validateMutation = useMutation({
     mutationFn: async () => {
@@ -28,11 +24,7 @@ export default function Task3Page() {
   const generateError = !!generateMutation.error
 
   const result = validateMutation.data ?? null
-  const validateError = validateMutation.error
-    ? validateMutation.error instanceof Error
-      ? validateMutation.error.message
-      : "Failed to contact server"
-    : null
+  const validateError = getMutationError(validateMutation.error, "Failed to contact server") || null
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">

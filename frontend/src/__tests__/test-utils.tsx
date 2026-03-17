@@ -1,7 +1,7 @@
-import React from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
-import { AuthProvider } from '../context/AuthContext'
+import React from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { MemoryRouter } from "react-router-dom"
+import { AuthInit } from "../store/authStore"
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -17,7 +17,8 @@ export function TestWrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthInit />
+        {children}
       </MemoryRouter>
     </QueryClientProvider>
   )

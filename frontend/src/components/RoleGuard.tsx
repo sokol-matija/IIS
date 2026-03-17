@@ -1,18 +1,18 @@
-import type { ReactNode } from "react";
-import { useAuthStore as useAuth } from "../store/authStore";
+import type { ReactNode } from "react"
+import { useAuthStore } from "../store/authStore"
 
 interface RoleGuardProps {
-  requiredRole: string;
-  children: ReactNode;
-  fallback?: ReactNode;
+  requiredRole: string
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 export default function RoleGuard({ requiredRole, children, fallback }: RoleGuardProps) {
-  const { role } = useAuth();
+  const { role } = useAuthStore()
 
   if (role !== requiredRole) {
-    return fallback ? <>{fallback}</> : null;
+    return fallback ? <>{fallback}</> : null
   }
 
-  return <>{children}</>;
+  return <>{children}</>
 }

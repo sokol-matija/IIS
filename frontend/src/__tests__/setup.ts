@@ -1,5 +1,5 @@
-import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import "@testing-library/jest-dom"
+import { vi } from "vitest"
 
 // Node v25 has a built-in localStorage stub (without methods like setItem/getItem/clear)
 // that shadows jsdom's proper localStorage in test workers.
@@ -29,4 +29,4 @@ const createLocalStorageMock = () => {
 }
 
 const localStorageMock = createLocalStorageMock()
-vi.stubGlobal('localStorage', localStorageMock)
+vi.stubGlobal("localStorage", localStorageMock)

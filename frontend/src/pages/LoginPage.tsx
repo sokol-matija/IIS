@@ -1,46 +1,48 @@
-import React from "react";
-import { useState } from "react";
-import { useAuthStore as useAuth } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
-import { GradientCard } from "@msokol/gradient-card-component";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Layers, LogIn, Loader2 } from "lucide-react";
+import React from "react"
+import { useState } from "react"
+import { useAuthStore } from "../store/authStore"
+import { useNavigate } from "react-router-dom"
+import { GradientCard } from "@msokol/gradient-card-component"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Layers, LogIn, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { login } = useAuthStore()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.BaseSyntheticEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
     try {
-      await login(email, password);
-      navigate("/task1");
+      await login(email, password)
+      navigate("/task1")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Login failed")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
+    <div className="flex min-h-screen items-center justify-center">
       <div className="w-[400px]">
         {/* Logo — glowing frosted badge */}
-        <div className="flex flex-col items-center mb-8 gap-3">
+        <div className="mb-8 flex flex-col items-center gap-3">
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            className="flex h-16 w-16 items-center justify-center rounded-2xl"
             style={{
-              background: "linear-gradient(135deg, rgba(162,155,254,0.85) 0%, rgba(223,186,244,0.80) 100%)",
-              boxShadow: "0 0 40px rgba(162,155,254,0.50), 0 0 16px rgba(223,186,244,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
+              background:
+                "linear-gradient(135deg, rgba(162,155,254,0.85) 0%, rgba(223,186,244,0.80) 100%)",
+              boxShadow:
+                "0 0 40px rgba(162,155,254,0.50), 0 0 16px rgba(223,186,244,0.30), inset 0 1px 0 rgba(255,255,255,0.25)",
               border: "1px solid rgba(255,255,255,0.20)",
               backdropFilter: "blur(12px)",
             }}
@@ -62,7 +64,10 @@ export default function LoginPage() {
         >
           <form onSubmit={handleSubmit} className="mt-2">
             <div className="mb-5">
-              <Label htmlFor="email" className="mb-1.5 text-white/70 text-xs font-medium uppercase tracking-wider">
+              <Label
+                htmlFor="email"
+                className="mb-1.5 text-xs font-medium tracking-wider text-white/70 uppercase"
+              >
                 Email
               </Label>
               <Input
@@ -77,7 +82,10 @@ export default function LoginPage() {
             </div>
 
             <div className="mb-7">
-              <Label htmlFor="password" className="mb-1.5 text-white/70 text-xs font-medium uppercase tracking-wider">
+              <Label
+                htmlFor="password"
+                className="mb-1.5 text-xs font-medium tracking-wider text-white/70 uppercase"
+              >
                 Password
               </Label>
               <Input
@@ -94,7 +102,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 text-sm justify-center gap-2"
+              className="h-11 w-full justify-center gap-2 text-sm"
             >
               {loading ? (
                 <>
@@ -111,7 +119,7 @@ export default function LoginPage() {
 
             {error && (
               <div
-                className="rounded-xl p-4 mt-4 text-sm"
+                className="mt-4 rounded-xl p-4 text-sm"
                 style={{
                   background: "rgba(239,68,68,0.10)",
                   border: "1px solid rgba(239,68,68,0.25)",
@@ -125,10 +133,10 @@ export default function LoginPage() {
           </form>
         </GradientCard>
 
-        <p className="text-center mt-5 text-white/30 text-xs">
+        <p className="mt-5 text-center text-xs text-white/30">
           admin@iis.hr / admin123 &bull; reader@iis.hr / reader123
         </p>
       </div>
     </div>
-  );
+  )
 }

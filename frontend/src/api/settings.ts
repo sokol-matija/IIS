@@ -1,12 +1,12 @@
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = import.meta.env.VITE_API_URL || ""
 
 interface Settings {
-  useCustomApi: boolean;
+  useCustomApi: boolean
 }
 
 export async function getSettings(signal?: AbortSignal): Promise<Settings> {
-  const res = await fetch(`${API_URL}/api/settings`, { signal });
-  return res.json();
+  const res = await fetch(`${API_URL}/api/settings`, { signal })
+  return res.json()
 }
 
 export async function updateSettings(settings: Settings): Promise<Settings> {
@@ -14,6 +14,6 @@ export async function updateSettings(settings: Settings): Promise<Settings> {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(settings),
-  });
-  return res.json();
+  })
+  return res.json()
 }

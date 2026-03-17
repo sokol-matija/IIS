@@ -1,17 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { AuthProvider } from "./context/AuthContext";
-import { useAuthStore as useAuth } from "./store/authStore";
-import Layout from "./components/Layout";
-import LoginPage from "./pages/LoginPage";
-import Task1Page from "./pages/Task1Page";
-import Task2Page from "./pages/Task2Page";
-import Task3Page from "./pages/Task3Page";
-import Task4Page from "./pages/Task4Page";
-import Task5Page from "./pages/Task5Page";
-import SettingsPage from "./pages/SettingsPage";
-import type { ReactNode } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { useAuthStore, AuthInit } from "./store/authStore"
+import Layout from "./components/Layout"
+import LoginPage from "./pages/LoginPage"
+import Task1Page from "./pages/Task1Page"
+import Task2Page from "./pages/Task2Page"
+import Task3Page from "./pages/Task3Page"
+import Task4Page from "./pages/Task4Page"
+import Task5Page from "./pages/Task5Page"
+import SettingsPage from "./pages/SettingsPage"
+import type { ReactNode } from "react"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,18 +18,18 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60,
     },
   },
-});
+})
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />
   }
-  return <>{children}</>;
+  return <>{children}</>
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore()
 
   return (
     <Routes>
@@ -56,18 +55,17 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  );
+  )
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <AuthInit />
+        <AppRoutes />
       </BrowserRouter>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
-  );
+  )
 }

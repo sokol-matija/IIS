@@ -1,23 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo } from "react"
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
   createColumnHelper,
-} from "@tanstack/react-table";
-import type { Category } from "../api/categories";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Search } from "lucide-react";
+} from "@tanstack/react-table"
+import type { Category } from "../api/categories"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Pencil, Trash2, Search } from "lucide-react"
 
 interface CategoryTableProps {
-  categories: Category[];
-  onEdit?: (cat: Category) => void;
-  onDelete?: (id: number) => void;
-  canWrite: boolean;
+  categories: Category[]
+  onEdit?: (cat: Category) => void
+  onDelete?: (id: number) => void
+  canWrite: boolean
 }
 
-const columnHelper = createColumnHelper<Category>();
+const columnHelper = createColumnHelper<Category>()
 
 export default function CategoryTable({
   categories,
@@ -25,9 +25,9 @@ export default function CategoryTable({
   onDelete,
   canWrite,
 }: CategoryTableProps) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("")
 
-  const showActions = !!(onEdit || onDelete);
+  const showActions = !!(onEdit || onDelete)
 
   const filtered = useMemo(
     () =>
@@ -38,20 +38,18 @@ export default function CategoryTable({
           (cat.description ?? "").toLowerCase().includes(search.toLowerCase())
       ),
     [categories, search]
-  );
+  )
 
   const columns = useMemo(
     () => [
       columnHelper.accessor("name", {
         header: "Name",
-        cell: (info) => (
-          <span className="font-medium text-foreground">{info.getValue()}</span>
-        ),
+        cell: (info) => <span className="text-foreground font-medium">{info.getValue()}</span>,
       }),
       columnHelper.accessor("slug", {
         header: "Slug",
         cell: (info) => (
-          <code className="bg-muted rounded px-1.5 py-0.5 text-xs text-muted-foreground">
+          <code className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">
             {info.getValue()}
           </code>
         ),
@@ -59,26 +57,22 @@ export default function CategoryTable({
       columnHelper.accessor("description", {
         header: "Description",
         cell: (info) => (
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap block">
+          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
             {info.getValue() || "\u2014"}
           </span>
         ),
       }),
       columnHelper.accessor("id", {
         header: "ID",
-        cell: (info) => (
-          <span className="text-xs text-muted-foreground">{info.getValue()}</span>
-        ),
+        cell: (info) => <span className="text-muted-foreground text-xs">{info.getValue()}</span>,
       }),
       ...(showActions
         ? [
             columnHelper.display({
               id: "actions",
-              header: () => (
-                <span className="flex justify-end">Actions</span>
-              ),
+              header: () => <span className="flex justify-end">Actions</span>,
               cell: ({ row }) => {
-                const cat = row.original;
+                const cat = row.original
                 return (
                   <div className="flex items-center justify-end gap-1">
                     {onEdit && (
@@ -105,27 +99,30 @@ export default function CategoryTable({
                       </Button>
                     )}
                   </div>
-                );
+                )
               },
             }),
           ]
         : []),
     ],
     [showActions, onEdit, onDelete, canWrite]
-  );
+  )
 
   const table = useReactTable({
     data: filtered,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  });
+  })
 
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="relative flex-[0_1_320px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Search
+            size={14}
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+          />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -139,15 +136,15 @@ export default function CategoryTable({
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded overflow-hidden">
+      <div className="border-border overflow-hidden rounded border">
         <table className="w-full border-collapse">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="bg-card border-b border-border">
+              <tr key={headerGroup.id} className="bg-card border-border border-b">
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+                    className="text-muted-foreground px-4 py-2.5 text-left text-[11px] font-semibold tracking-[0.06em] uppercase"
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
@@ -160,7 +157,7 @@ export default function CategoryTable({
               <tr>
                 <td
                   colSpan={showActions ? 5 : 4}
-                  className="px-4 py-10 text-center text-sm text-muted-foreground bg-card"
+                  className="text-muted-foreground bg-card px-4 py-10 text-center text-sm"
                 >
                   No entries found
                 </td>
@@ -169,17 +166,17 @@ export default function CategoryTable({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-border bg-card hover:bg-accent/30 transition-colors"
+                  className="border-border bg-card hover:bg-accent/30 border-b transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
                       className={
                         cell.column.id === "description"
-                          ? "px-4 h-12 align-middle text-sm text-muted-foreground max-w-[240px]"
+                          ? "text-muted-foreground h-12 max-w-[240px] px-4 align-middle text-sm"
                           : cell.column.id === "actions"
-                          ? "px-4 h-12 align-middle text-right"
-                          : "px-4 h-12 align-middle text-sm"
+                            ? "h-12 px-4 text-right align-middle"
+                            : "h-12 px-4 align-middle text-sm"
                       }
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -192,5 +189,5 @@ export default function CategoryTable({
         </table>
       </div>
     </div>
-  );
+  )
 }

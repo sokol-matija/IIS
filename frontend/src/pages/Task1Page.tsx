@@ -12,6 +12,8 @@ export default function Task1Page() {
   const isReadOnly = role === "read-only"
   const [xmlFileName, setXmlFileName] = useState<string | null>(null)
   const [jsonFileName, setJsonFileName] = useState<string | null>(null)
+  const [xmlContent, setXmlContent] = useState<string>("")
+  const [jsonContent, setJsonContent] = useState<string>("")
   const xmlRef = useRef<HTMLInputElement>(null)
   const jsonRef = useRef<HTMLInputElement>(null)
 
@@ -27,21 +29,31 @@ export default function Task1Page() {
   })
 
   const handleXmlChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setXmlFileName(e.target.files?.[0]?.name ?? null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    setXmlFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (ev) => setXmlContent((ev.target?.result as string) ?? "")
+    reader.readAsText(file)
   }
 
   const handleJsonChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setJsonFileName(e.target.files?.[0]?.name ?? null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    setJsonFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (ev) => setJsonContent((ev.target?.result as string) ?? "")
+    reader.readAsText(file)
   }
 
   const handleSubmit = (e: React.BaseSyntheticEvent) => {
     e.preventDefault()
     const formData = new FormData()
-    if (xmlRef.current?.files?.[0]) {
-      formData.append("xmlFile", xmlRef.current.files[0])
+    if (xmlContent) {
+      formData.append("xmlFile", new Blob([xmlContent], { type: "text/xml" }), xmlFileName ?? "file.xml")
     }
-    if (jsonRef.current?.files?.[0]) {
-      formData.append("jsonFile", jsonRef.current.files[0])
+    if (jsonContent) {
+      formData.append("jsonFile", new Blob([jsonContent], { type: "application/json" }), jsonFileName ?? "file.json")
     }
     uploadMutation.mutate(formData)
   }
@@ -69,7 +81,7 @@ export default function Task1Page() {
           {/* XML Card */}
           <GradientCard variant="lavender" title="XML File">
             <label
-              className="border-border hover:border-primary hover:bg-primary/5 mt-2 mb-3 block cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors"
+              className="border-border hover:border-primary hover:bg-primary/5 mt-2 mb-3 block cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors"
               htmlFor="xml-upload"
             >
               <div className="mb-2 flex justify-center">
@@ -92,12 +104,21 @@ export default function Task1Page() {
                 className="hidden"
               />
             </label>
+            {xmlContent && (
+              <textarea
+                value={xmlContent}
+                onChange={(e) => setXmlContent(e.target.value)}
+                className="bg-muted/50 border-border focus:border-primary w-full rounded-lg border p-3 font-mono text-xs outline-none transition-colors"
+                rows={10}
+                spellCheck={false}
+              />
+            )}
           </GradientCard>
 
           {/* JSON Card */}
           <GradientCard variant="ghost" title="JSON File">
             <label
-              className="border-border hover:border-primary hover:bg-primary/5 mt-2 mb-3 block cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors"
+              className="border-border hover:border-primary hover:bg-primary/5 mt-2 mb-3 block cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors"
               htmlFor="json-upload"
             >
               <div className="mb-2 flex justify-center">
@@ -120,12 +141,25 @@ export default function Task1Page() {
                 className="hidden"
               />
             </label>
+            {jsonContent && (
+              <textarea
+                value={jsonContent}
+                onChange={(e) => setJsonContent(e.target.value)}
+                className="bg-muted/50 border-border focus:border-primary w-full rounded-lg border p-3 font-mono text-xs outline-none transition-colors"
+                rows={10}
+                spellCheck={false}
+              />
+            )}
           </GradientCard>
         </div>
 
-        <Button type="submit" disabled={loading || isReadOnly} className="h-10 px-6">
+        <Button
+          type="submit"
+          disabled={loading || isReadOnly || (!xmlContent && !jsonContent)}
+          className="h-10 px-6"
+        >
           {loading
-            ? "Uploading..."
+            ? "Validating..."
             : isReadOnly
               ? "Read-Only — Upload Disabled"
               : "Upload & Validate"}

@@ -48,10 +48,10 @@ describe("Task1Page", () => {
     expect(screen.getByText(/Task 1/)).toBeInTheDocument()
   })
 
-  it("shows upload button enabled for full-access", async () => {
+  it("shows upload button disabled when no files are loaded", async () => {
     setup("full-access")
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /upload & validate/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /upload & validate/i })).toBeDisabled()
     })
   })
 
@@ -68,6 +68,20 @@ describe("Task1Page", () => {
     expect(screen.getByText("JSON File")).toBeInTheDocument()
   })
 
+  function mockFileReader(xmlText: string, jsonText: string) {
+    let callCount = 0
+    const contents = [xmlText, jsonText]
+    class MockFileReader {
+      onload: ((e: { target: { result: string } }) => void) | null = null
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      readAsText(_file: File) {
+        const content = contents[callCount++]
+        this.onload?.({ target: { result: content } })
+      }
+    }
+    vi.stubGlobal("FileReader", MockFileReader)
+  }
+
   it("displays success result after upload", async () => {
     const user = userEvent.setup()
     const token = makeJwt("full-access")
@@ -77,17 +91,16 @@ describe("Task1Page", () => {
       "fetch",
       vi
         .fn()
-        // Auth refresh on mount
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ accessToken: token, refreshToken: "r", role: "full-access" }),
         })
-        // Upload response
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ data: { id: 1, name: "Test", slug: "test" } }),
         })
     )
+    mockFileReader("<category/>", '{"name":"Test","slug":"test"}')
 
     render(
       <QueryClientProvider client={createTestQueryClient()}>
@@ -99,6 +112,11 @@ describe("Task1Page", () => {
         </MemoryRouter>
       </QueryClientProvider>
     )
+
+    const xmlInput = document.querySelector("#xml-upload") as HTMLInputElement
+    const jsonInput = document.querySelector("#json-upload") as HTMLInputElement
+    await user.upload(xmlInput, new File(["<category/>"], "file.xml", { type: "text/xml" }))
+    await user.upload(jsonInput, new File(['{"name":"Test"}'], "file.json", { type: "application/json" }))
 
     const submitBtn = await screen.findByRole("button", { name: /upload & validate/i })
     await user.click(submitBtn)
@@ -126,6 +144,7 @@ describe("Task1Page", () => {
           json: async () => ({ errors: ["Invalid XML structure", "Missing required field: name"] }),
         })
     )
+    mockFileReader("<bad/>", "{}")
 
     render(
       <QueryClientProvider client={createTestQueryClient()}>
@@ -137,6 +156,11 @@ describe("Task1Page", () => {
         </MemoryRouter>
       </QueryClientProvider>
     )
+
+    const xmlInput = document.querySelector("#xml-upload") as HTMLInputElement
+    const jsonInput = document.querySelector("#json-upload") as HTMLInputElement
+    await user.upload(xmlInput, new File(["<bad/>"], "file.xml", { type: "text/xml" }))
+    await user.upload(jsonInput, new File(["{}"], "file.json", { type: "application/json" }))
 
     const submitBtn = await screen.findByRole("button", { name: /upload & validate/i })
     await user.click(submitBtn)

@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { GradientCard } from "@msokol/gradient-card-component"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -76,6 +77,7 @@ function TempBadge({ temp }: { temp: string }) {
 
 export default function Task4Page() {
   const [city, setCity] = useState("")
+  const [cityFilter, setCityFilter] = useState("")
 
   const searchMutation = useMutation({
     mutationFn: async (cityName: string) => {
@@ -87,6 +89,13 @@ export default function Task4Page() {
       const data = await res.json()
       return data as { stations: WeatherStation[] }
     },
+    onSuccess: (data) => {
+      setCityFilter("")
+      toast.success(`Found ${data.stations.length} station${data.stations.length === 1 ? "" : "s"}`)
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Weather request failed")
+    },
   })
 
   const handleSearch = (e: React.BaseSyntheticEvent) => {
@@ -95,7 +104,10 @@ export default function Task4Page() {
   }
 
   const rawData = searchMutation.data ?? null
-  const stations = rawData?.stations ?? []
+  const allStations = rawData?.stations ?? []
+  const stations = cityFilter
+    ? allStations.filter((s) => s.city.toLowerCase().includes(cityFilter.toLowerCase()))
+    : allStations
   const loading = searchMutation.isPending
   const error =
     searchMutation.error instanceof Error
@@ -179,9 +191,24 @@ export default function Task4Page() {
         )}
       </GradientCard>
 
+      {/* City filter */}
+      {allStations.length > 0 && (
+        <div className="mt-5 flex items-center gap-3">
+          <Input
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            placeholder="Filter by city..."
+            className="max-w-xs"
+          />
+          <span className="text-muted-foreground text-sm whitespace-nowrap">
+            {stations.length} of {allStations.length} stations
+          </span>
+        </div>
+      )}
+
       {/* Results Grid */}
       {stations.length > 0 && (
-        <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+        <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
           {stations.map((s) => (
             <GradientCard
               key={s.city}
@@ -199,7 +226,7 @@ export default function Task4Page() {
         </div>
       )}
 
-      {stations.length === 0 && !loading && !error && !rawData && (
+      {allStations.length === 0 && !loading && !error && !rawData && (
         <div className="bg-card border-border mt-6 rounded-xl border p-6">
           <p className="text-muted-foreground text-center text-sm">
             Enter a city name to search weather stations.
@@ -207,7 +234,7 @@ export default function Task4Page() {
         </div>
       )}
 
-      {rawData && stations.length === 0 && !loading && (
+      {rawData && allStations.length === 0 && !loading && (
         <div className="bg-card border-border mt-6 rounded-xl border p-6">
           <p className="text-muted-foreground text-center text-sm">No stations found for that city name.</p>
         </div>

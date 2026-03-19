@@ -1,12 +1,12 @@
 import React, { useReducer } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { useAuthStore } from "../store/authStore"
 import {
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory,
-  type Category,
 } from "../api/categories"
 import CategoryTable from "../components/CategoryTable"
 import { GradientCard } from "@msokol/gradient-card-component"
@@ -18,19 +18,16 @@ import { ChevronDown, ChevronUp, Plus } from "lucide-react"
 
 const API_URL = import.meta.env.VITE_API_URL || ""
 
-// ── CRUD form state ────────────────────────────────────────────────────────────
+// ── Create form state ──────────────────────────────────────────────────────────
 interface FormState {
   showForm: boolean
-  formMode: "create" | "edit"
-  editId: number | null
   name: string
   slug: string
   description: string
 }
 
 type FormAction =
-  | { type: "open_create" }
-  | { type: "open_edit"; cat: Category }
+  | { type: "open" }
   | { type: "cancel" }
   | { type: "set_name"; value: string }
   | { type: "set_slug"; value: string }
@@ -38,8 +35,6 @@ type FormAction =
 
 const formInit: FormState = {
   showForm: false,
-  formMode: "create",
-  editId: null,
   name: "",
   slug: "",
   description: "",
@@ -47,36 +42,10 @@ const formInit: FormState = {
 
 function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
-    case "open_create":
-      return {
-        ...state,
-        showForm: true,
-        formMode: "create",
-        editId: null,
-        name: "",
-        slug: "",
-        description: "",
-      }
-    case "open_edit":
-      return {
-        ...state,
-        showForm: true,
-        formMode: "edit",
-        editId: action.cat.id,
-        name: action.cat.name,
-        slug: action.cat.slug,
-        description: action.cat.description || "",
-      }
+    case "open":
+      return { showForm: true, name: "", slug: "", description: "" }
     case "cancel":
-      return {
-        ...state,
-        showForm: false,
-        formMode: "create",
-        editId: null,
-        name: "",
-        slug: "",
-        description: "",
-      }
+      return { ...formInit }
     case "set_name":
       return { ...state, name: action.value }
     case "set_slug":
@@ -153,6 +122,10 @@ export default function Task5Page() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] })
       formDispatch({ type: "cancel" })
+      toast.success("Category created")
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Create failed")
     },
   })
 
@@ -170,7 +143,10 @@ export default function Task5Page() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] })
-      formDispatch({ type: "cancel" })
+      toast.success("Category updated")
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Update failed")
     },
   })
 
@@ -182,29 +158,24 @@ export default function Task5Page() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] })
+      toast.success("Category deleted")
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Delete failed")
     },
   })
 
-  const submitError =
-    createMutation.error?.message ||
-    updateMutation.error?.message ||
-    deleteMutation.error?.message ||
-    (categoriesError instanceof Error
-      ? categoriesError.message
-      : categoriesError
-        ? "Failed to load"
-        : "")
+  if (categoriesError) {
+    toast.error(categoriesError instanceof Error ? categoriesError.message : "Failed to load categories")
+  }
 
   const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault()
-    if (form.formMode === "create") {
-      createMutation.mutate({ name: form.name, slug: form.slug, description: form.description })
-    } else if (form.editId !== null) {
-      updateMutation.mutate({
-        id: form.editId,
-        cat: { name: form.name, slug: form.slug, description: form.description },
-      })
-    }
+    createMutation.mutate({ name: form.name, slug: form.slug, description: form.description })
+  }
+
+  const handleInlineUpdate = (id: number, patch: { name: string; slug: string; description: string }) => {
+    updateMutation.mutate({ id, cat: patch })
   }
 
   const handleDelete = async (id: number) => {
@@ -246,25 +217,16 @@ export default function Task5Page() {
           </p>
         </div>
         {canWrite && (
-          <Button className="h-10 px-5" onClick={() => formDispatch({ type: "open_create" })}>
+          <Button className="h-10 px-5" onClick={() => formDispatch({ type: "open" })}>
             <Plus size={16} />
             Add an entry
           </Button>
         )}
       </div>
 
-      {submitError && (
-        <div className="bg-destructive/10 border-destructive/20 text-destructive mb-5 rounded-lg border p-4">
-          {submitError}
-        </div>
-      )}
-
-      {/* Create / Edit Form */}
+      {/* Create Form */}
       {form.showForm && (
-        <GradientCard
-          variant="lavender"
-          title={form.formMode === "create" ? "New Category" : "Edit Category"}
-        >
+        <GradientCard variant="lavender" title="New Category">
           <form onSubmit={handleSubmit} className="mt-4">
             <div className="mb-4 grid grid-cols-2 gap-4">
               <div>
@@ -305,7 +267,7 @@ export default function Task5Page() {
             </div>
             <div className="flex gap-2">
               <Button type="submit" className="h-9 px-5" disabled={isSubmitting}>
-                {form.formMode === "create" ? "Create" : "Update"}
+                Create
               </Button>
               <Button
                 type="button"
@@ -329,8 +291,8 @@ export default function Task5Page() {
         ) : (
           <CategoryTable
             categories={categories}
-            onEdit={(cat) => formDispatch({ type: "open_edit", cat })}
-            onDelete={handleDelete}
+            onInlineUpdate={canWrite ? handleInlineUpdate : undefined}
+            onDelete={canWrite ? handleDelete : undefined}
             canWrite={canWrite}
           />
         )}

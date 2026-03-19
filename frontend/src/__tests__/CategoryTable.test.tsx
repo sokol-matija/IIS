@@ -23,17 +23,17 @@ describe("CategoryTable", () => {
   })
 
   it("shows enabled Edit and Delete buttons for full-access role", () => {
-    const onEdit = vi.fn()
+    const onInlineUpdate = vi.fn()
     const onDelete = vi.fn()
     render(
       <CategoryTable
         categories={mockCategories}
-        onEdit={onEdit}
+        onInlineUpdate={onInlineUpdate}
         onDelete={onDelete}
         canWrite={true}
       />
     )
-    const editButtons = screen.getAllByTitle("Edit")
+    const editButtons = screen.getAllByTitle("Edit inline")
     const deleteButtons = screen.getAllByTitle("Delete")
     expect(editButtons).toHaveLength(2)
     expect(deleteButtons).toHaveLength(2)
@@ -42,12 +42,12 @@ describe("CategoryTable", () => {
   })
 
   it('shows disabled buttons with "Insufficient permissions" title for read-only', () => {
-    const onEdit = vi.fn()
+    const onInlineUpdate = vi.fn()
     const onDelete = vi.fn()
     render(
       <CategoryTable
         categories={mockCategories}
-        onEdit={onEdit}
+        onInlineUpdate={onInlineUpdate}
         onDelete={onDelete}
         canWrite={false}
       />
@@ -57,13 +57,21 @@ describe("CategoryTable", () => {
     insufficient.forEach((btn) => expect(btn).toBeDisabled())
   })
 
-  it("clicking Edit calls onEdit with correct category", async () => {
+  it("clicking Edit enters inline edit mode and Save calls onInlineUpdate", async () => {
     const user = userEvent.setup()
-    const onEdit = vi.fn()
-    render(<CategoryTable categories={mockCategories} onEdit={onEdit} canWrite={true} />)
-    await user.click(screen.getAllByTitle("Edit")[0])
-    expect(onEdit).toHaveBeenCalledOnce()
-    expect(onEdit).toHaveBeenCalledWith(mockCategories[0])
+    const onInlineUpdate = vi.fn()
+    render(<CategoryTable categories={mockCategories} onInlineUpdate={onInlineUpdate} canWrite={true} />)
+    await user.click(screen.getAllByTitle("Edit inline")[0])
+    // Inputs should appear
+    expect(screen.getByDisplayValue("Electronics")).toBeInTheDocument()
+    // Click save
+    await user.click(screen.getByTitle("Save"))
+    expect(onInlineUpdate).toHaveBeenCalledOnce()
+    expect(onInlineUpdate).toHaveBeenCalledWith(1, {
+      name: "Electronics",
+      slug: "electronics",
+      description: "Electronic devices",
+    })
   })
 
   it("clicking Delete calls onDelete with correct id", async () => {
@@ -82,7 +90,7 @@ describe("CategoryTable", () => {
 
   it("does not show action buttons when no handlers provided", () => {
     render(<CategoryTable categories={mockCategories} canWrite={true} />)
-    expect(screen.queryByTitle("Edit")).not.toBeInTheDocument()
+    expect(screen.queryByTitle("Edit inline")).not.toBeInTheDocument()
     expect(screen.queryByTitle("Delete")).not.toBeInTheDocument()
   })
 

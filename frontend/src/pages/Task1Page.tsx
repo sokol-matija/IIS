@@ -1,6 +1,8 @@
-import React, { useState, useRef, type ChangeEvent } from "react"
+import React, { useRef, type ChangeEvent } from "react"
 import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { useAuthStore } from "../store/authStore"
+import { useTask1Store } from "../store/task1Store"
 import { GradientCard } from "@msokol/gradient-card-component"
 import { Button } from "@/components/ui/button"
 import { FileText, FileJson } from "lucide-react"
@@ -10,10 +12,10 @@ const API_URL = import.meta.env.VITE_API_URL || ""
 export default function Task1Page() {
   const { role } = useAuthStore()
   const isReadOnly = role === "read-only"
-  const [xmlFileName, setXmlFileName] = useState<string | null>(null)
-  const [jsonFileName, setJsonFileName] = useState<string | null>(null)
-  const [xmlContent, setXmlContent] = useState<string>("")
-  const [jsonContent, setJsonContent] = useState<string>("")
+
+  const { xmlFileName, jsonFileName, xmlContent, jsonContent, setXmlFile, setJsonFile, setXmlContent, setJsonContent } =
+    useTask1Store()
+
   const xmlRef = useRef<HTMLInputElement>(null)
   const jsonRef = useRef<HTMLInputElement>(null)
 
@@ -26,23 +28,31 @@ export default function Task1Page() {
       const data = await res.json()
       return data as { data?: unknown; errors?: string[] }
     },
+    onSuccess: (data) => {
+      if (data.errors && data.errors.length > 0) {
+        toast.error(`Validation failed: ${data.errors[0]}`)
+      } else {
+        toast.success("Category saved successfully")
+      }
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Upload failed")
+    },
   })
 
   const handleXmlChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setXmlFileName(file.name)
     const reader = new FileReader()
-    reader.onload = (ev) => setXmlContent((ev.target?.result as string) ?? "")
+    reader.onload = (ev) => setXmlFile(file.name, (ev.target?.result as string) ?? "")
     reader.readAsText(file)
   }
 
   const handleJsonChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setJsonFileName(file.name)
     const reader = new FileReader()
-    reader.onload = (ev) => setJsonContent((ev.target?.result as string) ?? "")
+    reader.onload = (ev) => setJsonFile(file.name, (ev.target?.result as string) ?? "")
     reader.readAsText(file)
   }
 
@@ -60,9 +70,6 @@ export default function Task1Page() {
 
   const result = uploadMutation.data ?? null
   const loading = uploadMutation.isPending
-
-  // If there was a network error (thrown), surface it as an errors array
-  const networkError = uploadMutation.error instanceof Error ? uploadMutation.error.message : null
 
   return (
     <div className="flex-1 overflow-y-auto p-6 lg:p-8">
@@ -166,36 +173,25 @@ export default function Task1Page() {
         </Button>
       </form>
 
-      {networkError && (
+      {result && result.errors && result.errors.length > 0 && (
         <div className="bg-destructive/10 border-destructive/20 text-destructive mt-6 rounded-lg border p-5">
           <p className="mb-2 font-semibold">Validation Errors</p>
           <ul className="m-0 list-disc pl-5">
-            <li className="mb-1">{networkError}</li>
+            {result.errors.map((err) => (
+              <li key={err} className="mb-1">
+                {err}
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
-      {result && (
-        <div className="mt-6">
-          {result.errors && result.errors.length > 0 ? (
-            <div className="bg-destructive/10 border-destructive/20 text-destructive rounded-lg border p-5">
-              <p className="mb-2 font-semibold">Validation Errors</p>
-              <ul className="m-0 list-disc pl-5">
-                {result.errors.map((err) => (
-                  <li key={err} className="mb-1">
-                    {err}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-5 text-emerald-400">
-              <p className="mb-2 font-semibold">Category saved successfully</p>
-              <pre className="bg-muted/50 mt-3 max-h-96 overflow-auto rounded-lg border p-4 font-mono text-xs text-cyan-300">
-                {JSON.stringify(result.data, null, 2)}
-              </pre>
-            </div>
-          )}
+      {result && (!result.errors || result.errors.length === 0) && (
+        <div className="mt-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-5 text-emerald-400">
+          <p className="mb-2 font-semibold">Category saved successfully</p>
+          <pre className="bg-muted/50 mt-3 max-h-96 overflow-auto rounded-lg border p-4 font-mono text-xs text-cyan-300">
+            {JSON.stringify(result.data, null, 2)}
+          </pre>
         </div>
       )}
     </div>

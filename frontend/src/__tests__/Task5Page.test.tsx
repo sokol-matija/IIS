@@ -112,14 +112,13 @@ describe("Task5Page", () => {
     })
   })
 
-  it("opens edit form prefilled when Edit is clicked", async () => {
+  it("enters inline edit mode prefilled when Edit inline is clicked", async () => {
     const user = userEvent.setup()
     setupWithRole("full-access")
 
-    await waitFor(() => screen.getAllByTitle("Edit"))
-    await user.click(screen.getAllByTitle("Edit")[0])
+    await waitFor(() => screen.getAllByTitle("Edit inline"))
+    await user.click(screen.getAllByTitle("Edit inline")[0])
 
-    expect(screen.getByText("Edit Category")).toBeInTheDocument()
     expect(screen.getByDisplayValue("Electronics")).toBeInTheDocument()
     expect(screen.getByDisplayValue("electronics")).toBeInTheDocument()
   })

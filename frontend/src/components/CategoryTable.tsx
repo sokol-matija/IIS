@@ -8,11 +8,11 @@ import {
 import type { Category } from "../api/categories"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash2, Search } from "lucide-react"
+import { Pencil, Trash2, Search, Check, X } from "lucide-react"
 
 interface CategoryTableProps {
   categories: Category[]
-  onEdit?: (cat: Category) => void
+  onInlineUpdate?: (id: number, patch: { name: string; slug: string; description: string }) => void
   onDelete?: (id: number) => void
   canWrite: boolean
 }
@@ -21,13 +21,27 @@ const columnHelper = createColumnHelper<Category>()
 
 export default function CategoryTable({
   categories,
-  onEdit,
+  onInlineUpdate,
   onDelete,
   canWrite,
 }: CategoryTableProps) {
   const [search, setSearch] = useState("")
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [draft, setDraft] = useState({ name: "", slug: "", description: "" })
 
-  const showActions = !!(onEdit || onDelete)
+  const startEdit = (cat: Category) => {
+    setEditingId(cat.id)
+    setDraft({ name: cat.name, slug: cat.slug, description: cat.description || "" })
+  }
+
+  const saveEdit = () => {
+    if (editingId !== null && onInlineUpdate) {
+      onInlineUpdate(editingId, draft)
+    }
+    setEditingId(null)
+  }
+
+  const cancelEdit = () => setEditingId(null)
 
   const filtered = useMemo(
     () =>
@@ -44,68 +58,129 @@ export default function CategoryTable({
     () => [
       columnHelper.accessor("name", {
         header: "Name",
-        cell: (info) => <span className="text-foreground font-medium">{info.getValue()}</span>,
+        cell: (info) => {
+          const cat = info.row.original
+          if (editingId === cat.id) {
+            return (
+              <Input
+                value={draft.name}
+                onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit() }}
+                className="h-8 text-sm"
+                autoFocus
+              />
+            )
+          }
+          return <span className="text-foreground font-medium">{info.getValue()}</span>
+        },
       }),
       columnHelper.accessor("slug", {
         header: "Slug",
-        cell: (info) => (
-          <code className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">
-            {info.getValue()}
-          </code>
-        ),
+        cell: (info) => {
+          const cat = info.row.original
+          if (editingId === cat.id) {
+            return (
+              <Input
+                value={draft.slug}
+                onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit() }}
+                className="h-8 font-mono text-xs"
+              />
+            )
+          }
+          return (
+            <code className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">
+              {info.getValue()}
+            </code>
+          )
+        },
       }),
       columnHelper.accessor("description", {
         header: "Description",
-        cell: (info) => (
-          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-            {info.getValue() || "\u2014"}
-          </span>
-        ),
+        cell: (info) => {
+          const cat = info.row.original
+          if (editingId === cat.id) {
+            return (
+              <Input
+                value={draft.description}
+                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit() }}
+                className="h-8 text-sm"
+                placeholder="Optional description"
+              />
+            )
+          }
+          return (
+            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+              {info.getValue() || "\u2014"}
+            </span>
+          )
+        },
       }),
       columnHelper.accessor("id", {
         header: "ID",
         cell: (info) => <span className="text-muted-foreground text-xs">{info.getValue()}</span>,
       }),
-      ...(showActions
-        ? [
-            columnHelper.display({
-              id: "actions",
-              header: () => <span className="flex justify-end">Actions</span>,
-              cell: ({ row }) => {
-                const cat = row.original
-                return (
-                  <div className="flex items-center justify-end gap-1">
-                    {onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => canWrite && onEdit(cat)}
-                        disabled={!canWrite}
-                        title={!canWrite ? "Insufficient permissions" : "Edit"}
-                      >
-                        <Pencil size={14} />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => canWrite && onDelete(cat.id)}
-                        disabled={!canWrite}
-                        title={!canWrite ? "Insufficient permissions" : "Delete"}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    )}
-                  </div>
-                )
-              },
-            }),
-          ]
-        : []),
+      columnHelper.display({
+        id: "actions",
+        header: () => <span className="flex justify-end">Actions</span>,
+        cell: ({ row }) => {
+          const cat = row.original
+          if (editingId === cat.id) {
+            return (
+              <div className="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={saveEdit}
+                  title="Save"
+                  className="text-emerald-400 hover:text-emerald-300"
+                >
+                  <Check size={14} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={cancelEdit}
+                  title="Cancel"
+                >
+                  <X size={14} />
+                </Button>
+              </div>
+            )
+          }
+          return (
+            <div className="flex items-center justify-end gap-1">
+              {onInlineUpdate && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => canWrite && startEdit(cat)}
+                  disabled={!canWrite || editingId !== null}
+                  title={!canWrite ? "Insufficient permissions" : "Edit inline"}
+                >
+                  <Pencil size={14} />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => canWrite && onDelete(cat.id)}
+                  disabled={!canWrite || editingId !== null}
+                  title={!canWrite ? "Insufficient permissions" : "Delete"}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              )}
+            </div>
+          )
+        },
+      }),
     ],
-    [showActions, onEdit, onDelete, canWrite]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editingId, draft, onInlineUpdate, onDelete, canWrite]
   )
 
   const table = useReactTable({
@@ -156,7 +231,7 @@ export default function CategoryTable({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showActions ? 5 : 4}
+                  colSpan={5}
                   className="text-muted-foreground bg-card px-4 py-10 text-center text-sm"
                 >
                   No entries found

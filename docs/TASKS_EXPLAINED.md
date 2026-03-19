@@ -345,7 +345,7 @@ This is the largest task. It covers:
 | GraphQL resolvers | `backend/src/graphql/resolvers.ts` |
 | Settings endpoints | `backend/src/index.ts` (`GET/PUT /api/settings`) |
 | Frontend API client | `frontend/src/api/categories.ts` |
-| Auth context | `frontend/src/context/AuthContext.tsx` |
+| Auth store | `frontend/src/store/authStore.ts` |
 | Frontend page | `frontend/src/pages/Task5Page.tsx` |
 | Settings page | `frontend/src/pages/SettingsPage.tsx` |
 
@@ -409,9 +409,9 @@ Build a React frontend application that:
 
 ### What was implemented
 
-**Authentication and session management (`AuthContext`):**
-- `AuthProvider` wraps the entire application and holds the access token, role, and email in React state.
-- On mount, the provider attempts a silent token refresh using a refresh token stored in `localStorage`, restoring the session after page reload.
+**Authentication and session management (`authStore`):**
+- Auth state (access token, role, email) lives in a Zustand store (`frontend/src/store/authStore.ts`).
+- `AuthProvider` (in `context/AuthContext.tsx`) runs on mount, attempts a silent token refresh from `localStorage`, and writes the result into the store, restoring the session after page reload.
 - `getToken()` proactively refreshes the access token when it will expire within 60 seconds, ensuring API calls never fail due to token expiry.
 
 **Route protection:**
@@ -432,7 +432,7 @@ Build a React frontend application that:
 | Layer | File |
 |---|---|
 | App router and route guards | `frontend/src/App.tsx` |
-| Auth context provider | `frontend/src/context/AuthContext.tsx` |
+| Auth store | `frontend/src/store/authStore.ts` |
 | Role-guard component | `frontend/src/components/RoleGuard.tsx` |
 | Layout and navigation | `frontend/src/components/Layout.tsx` |
 | Login page | `frontend/src/pages/LoginPage.tsx` |
@@ -461,7 +461,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// frontend/src/context/AuthContext.tsx — silent refresh on mount
+// frontend/src/store/authStore.ts — silent refresh on mount (useAuthInit hook)
 useEffect(() => {
   const refreshToken = localStorage.getItem("refreshToken");
   if (refreshToken) {
@@ -509,7 +509,7 @@ useEffect(() => {
 | `backend/prisma/schema.prisma` | Task 5 |
 | `backend/prisma/seed.ts` | Task 5, Task 6 |
 | `frontend/src/App.tsx` | Task 6 |
-| `frontend/src/context/AuthContext.tsx` | Task 5, Task 6 |
+| `frontend/src/store/authStore.ts` | Task 5, Task 6 |
 | `frontend/src/components/RoleGuard.tsx` | Task 6 |
 | `frontend/src/components/Layout.tsx` | Task 6 |
 | `frontend/src/components/CategoryTable.tsx` | Task 5, Task 6 |

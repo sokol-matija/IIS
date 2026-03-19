@@ -100,13 +100,13 @@ Tests understanding of how JWT payloads are constructed and how TypeScript inter
 
 ### Challenge 4 --- Change the Token Refresh Threshold in Frontend
 
-**File:** `frontend/src/context/AuthContext.tsx`
+**File:** `frontend/src/store/authStore.ts`
 **Estimated time:** 2 min
 
 **Task:**
 The frontend currently refreshes the token if it expires in less than 1 minute. Change this threshold to 2 minutes.
 
-**Starting point (line 92):**
+**Starting point (line 64):**
 ```ts
 if (decoded.exp * 1000 > Date.now() + 60000) {
 ```
@@ -1634,47 +1634,45 @@ Tests understanding of GraphQL query syntax and which fields are available in th
 
 ### Challenge 42 --- Add Error Styling to Login Form
 
-**File:** `frontend/src/context/AuthContext.tsx`
+**File:** `frontend/src/api/auth.ts`
 **Estimated time:** 3 min
 
 **Task:**
-In the `login` function, when a 401 response is received, throw an error with the message "Invalid email or password" instead of using the generic error from the server.
+In the `loginApi` function, when a 401 response is received, throw an error with the message "Invalid email or password" instead of using the generic error from the server.
 
-**Starting point (lines 60-79):**
+**Starting point (lines 3-14):**
 ```ts
-  const login = useCallback(async (emailInput: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailInput, password }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || "Login failed");
-    }
-    // ...
-  }, []);
+export async function loginApi(email: string, password: string) {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || "Login failed")
+  }
+  return res.json()
+}
 ```
 
 **What the solution looks like:**
 ```ts
-  const login = useCallback(async (emailInput: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailInput, password }),
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Invalid email or password");
-      }
-      const err = await res.json();
-      throw new Error(err.error || "Login failed");
+export async function loginApi(email: string, password: string) {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("Invalid email or password")
     }
-    // ...
-  }, []);
+    const err = await res.json()
+    throw new Error(err.error || "Login failed")
+  }
+  return res.json()
+}
 ```
 
 **Why this tests understanding:**

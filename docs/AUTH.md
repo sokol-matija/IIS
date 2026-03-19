@@ -162,26 +162,26 @@ function getUser(context: GqlContext): AuthPayload {
 
 ## Frontend Token Storage
 
-Defined in `frontend/src/context/AuthContext.tsx`.
+Defined in `frontend/src/store/authStore.ts`. `frontend/src/context/AuthContext.tsx` remains as a compatibility shim that re-exports `useAuthStore` as `useAuth`.
 
 | Token | Storage | Reason |
 |-------|---------|--------|
-| Access token | React state (memory) | More secure; lost on page refresh |
+| Access token | Zustand store (memory) | More secure; lost on page refresh |
 | Refresh token | `localStorage` | Persists across page refreshes; used to silently re-authenticate |
 
 ### Automatic Token Refresh
 
-The `AuthContext` provides a `getToken()` function that components use to get a valid access token. Before returning the current token, it checks:
+`useAuthStore` provides a `getToken()` function that components use to get a valid access token. Before returning the current token, it checks:
 
 1. If the access token exists and expires in more than 60 seconds, return it directly.
 2. If the token is about to expire (or missing), attempt a refresh using the stored refresh token.
 3. If refresh fails, log the user out.
 
-This logic is in `frontend/src/context/AuthContext.tsx` (lines 88-119).
+This logic is in `frontend/src/store/authStore.ts` (lines 60-79).
 
 ### On Mount Behavior
 
-When the app loads, the `AuthProvider` checks for a stored refresh token in `localStorage`. If found, it immediately attempts a refresh to restore the session without requiring re-login.
+When the app loads, `AuthProvider` (in `context/AuthContext.tsx`) calls `refreshApi` using a stored refresh token to silently restore the session. Auth state lives in Zustand, not in React Context.
 
 ## Example: Calling a Protected Endpoint
 
@@ -208,8 +208,11 @@ curl -X POST http://localhost:3001/api/categories \
 ### From the Frontend
 
 ```typescript
-// In a React component:
-const { getToken } = useAuth();
+// In a React component (preferred):
+const { getToken } = useAuthStore();
+
+// Or via the legacy alias (still works):
+// const { getToken } = useAuth();
 
 const token = await getToken(); // auto-refreshes if needed
 const res = await fetch("/api/categories", {

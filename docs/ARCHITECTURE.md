@@ -225,10 +225,18 @@ IIS/
     ├── vite.config.ts           # Dev server + proxy config
     └── src/
         ├── App.tsx              # Router + protected routes
+        ├── store/
+        │   └── authStore.ts     # Zustand auth state (access token, role, getToken)
         ├── context/
-        │   └── AuthContext.tsx   # JWT auth state management
+        │   └── AuthContext.tsx  # Compat shim — re-exports useAuthStore as useAuth
+        ├── hooks/
+        │   └── useGenerateXmlMutation.ts  # Shared TanStack Query mutation hook
+        ├── lib/
+        │   └── utils.ts         # Shared utilities (cn, etc.)
         ├── api/
+        │   ├── auth.ts          # loginApi, refreshApi (fetch wrappers)
         │   ├── categories.ts    # REST client for categories
+        │   ├── settings.ts      # Settings API client
         │   └── soap.ts          # SOAP client (builds XML envelope)
         ├── pages/
         │   ├── LoginPage.tsx    # Login form
@@ -238,7 +246,10 @@ IIS/
         │   ├── Task4Page.tsx    # Weather (gRPC proxy)
         │   ├── Task5Page.tsx    # CRUD + GraphQL
         │   └── SettingsPage.tsx # API source toggle
-        └── components/
-            ├── Layout.tsx       # Sidebar navigation + outlet
-            └── CategoryTable.tsx # Reusable category table
+        ├── components/
+        │   ├── Layout.tsx       # Sidebar navigation + outlet
+        │   ├── CategoryTable.tsx # Reusable category table
+        │   ├── RoleGuard.tsx    # Conditionally renders children by role
+        │   └── ui/              # shadcn/ui primitives (button, input, badge, …)
+        └── __tests__/           # Vitest unit tests
 ```

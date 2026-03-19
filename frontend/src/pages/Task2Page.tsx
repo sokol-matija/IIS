@@ -6,6 +6,36 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useGenerateXmlMutation } from "../hooks/useGenerateXmlMutation"
 import { getMutationError } from "@/lib/utils"
+import { ChevronDown, ChevronRight } from "lucide-react"
+
+function CollapsibleCode({
+  label,
+  code,
+  defaultOpen = false,
+}: {
+  label: string
+  code: string
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border-border mt-4 overflow-hidden rounded-lg border">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="bg-card hover:bg-accent/30 flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors"
+      >
+        {open ? <ChevronDown size={14} className="opacity-60" /> : <ChevronRight size={14} className="opacity-60" />}
+        <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{label}</span>
+      </button>
+      {open && (
+        <pre className="bg-muted/40 max-h-72 overflow-auto border-t p-4 font-mono text-xs text-cyan-300 whitespace-pre-wrap break-all">
+          {code}
+        </pre>
+      )}
+    </div>
+  )
+}
 
 export default function Task2Page() {
   const [term, setTerm] = useState("")
@@ -24,7 +54,8 @@ export default function Task2Page() {
   const generateMsg = generateMutation.data ?? ""
   const generateError = !!generateMutation.error
 
-  const results: SoapCategory[] = searchMutation.data ?? []
+  const result = searchMutation.data ?? null
+  const results: SoapCategory[] = result?.categories ?? []
   const searchLoading = searchMutation.isPending
   const searchError = getMutationError(searchMutation.error, "SOAP search failed")
 
@@ -82,6 +113,14 @@ export default function Task2Page() {
             {searchError}
           </div>
         )}
+
+        {/* Protocol panels — shown after a search */}
+        {result && (
+          <>
+            <CollapsibleCode label="Request — SOAP Envelope (XML)" code={result.envelope} defaultOpen />
+            <CollapsibleCode label="Response — Raw SOAP XML" code={result.rawResponse} />
+          </>
+        )}
       </GradientCard>
 
       {/* Results */}
@@ -129,11 +168,17 @@ export default function Task2Page() {
         </div>
       )}
 
-      {results.length === 0 && !searchLoading && !searchError && (
+      {results.length === 0 && !searchLoading && !searchError && !result && (
         <div className="bg-card border-border mt-5 rounded-xl border p-6">
           <p className="text-muted-foreground text-center text-sm">
             Enter a search term above to query categories via SOAP.
           </p>
+        </div>
+      )}
+
+      {result && results.length === 0 && !searchLoading && (
+        <div className="bg-card border-border mt-5 rounded-xl border p-6">
+          <p className="text-muted-foreground text-center text-sm">No categories matched your search term.</p>
         </div>
       )}
     </div>

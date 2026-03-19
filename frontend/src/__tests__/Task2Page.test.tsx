@@ -41,10 +41,14 @@ describe("Task2Page", () => {
 
   it("calls searchCategoriesSoap and shows results", async () => {
     const user = userEvent.setup()
-    vi.spyOn(soapApi, "searchCategoriesSoap").mockResolvedValue([
-      { id: "1", name: "Electronics", slug: "electronics", description: "Devices" },
-      { id: "2", name: "Books", slug: "books", description: "" },
-    ])
+    vi.spyOn(soapApi, "searchCategoriesSoap").mockResolvedValue({
+      categories: [
+        { id: "1", name: "Electronics", slug: "electronics", description: "Devices" },
+        { id: "2", name: "Books", slug: "books", description: "" },
+      ],
+      envelope: "<soap:Envelope/>",
+      rawResponse: "<soap:Envelope/>",
+    })
 
     render(<Task2Page />, { wrapper: Wrapper })
 

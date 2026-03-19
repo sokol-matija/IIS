@@ -43,9 +43,11 @@ describe("searchCategoriesSoap", () => {
     )
 
     const result = await searchCategoriesSoap("electr")
-    expect(result).toHaveLength(2)
-    expect(result[0]).toMatchObject({ id: "1", name: "Electronics", slug: "electronics" })
-    expect(result[1]).toMatchObject({ name: "Books" })
+    expect(result.categories).toHaveLength(2)
+    expect(result.categories[0]).toMatchObject({ id: "1", name: "Electronics", slug: "electronics" })
+    expect(result.categories[1]).toMatchObject({ name: "Books" })
+    expect(result.envelope).toContain("electr")
+    expect(result.rawResponse).toContain("Electronics")
   })
 
   it("returns empty array when no categories in response", async () => {
@@ -58,7 +60,7 @@ describe("searchCategoriesSoap", () => {
     )
 
     const result = await searchCategoriesSoap("xyz")
-    expect(result).toHaveLength(0)
+    expect(result.categories).toHaveLength(0)
   })
 
   it("sends a POST request with correct SOAPAction header", async () => {

@@ -7,8 +7,14 @@ export interface SoapCategory {
   description: string
 }
 
-export async function searchCategoriesSoap(term: string): Promise<SoapCategory[]> {
-  const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+export interface SoapResult {
+  categories: SoapCategory[]
+  envelope: string
+  rawResponse: string
+}
+
+export async function searchCategoriesSoap(term: string): Promise<SoapResult> {
+  const envelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
                xmlns:tns="http://iis.hr/categories">
   <soap:Body>
@@ -24,14 +30,14 @@ export async function searchCategoriesSoap(term: string): Promise<SoapCategory[]
       "Content-Type": "text/xml; charset=utf-8",
       SOAPAction: "http://iis.hr/categories/SearchCategories",
     },
-    body: soapEnvelope,
+    body: envelope,
   })
 
-  const xmlText = await res.text()
+  const rawResponse = await res.text()
 
   // Parse SOAP response to extract categories
   const parser = new DOMParser()
-  const doc = parser.parseFromString(xmlText, "text/xml")
+  const doc = parser.parseFromString(rawResponse, "text/xml")
 
   const categories: SoapCategory[] = []
   const catNodes = doc.getElementsByTagName("categories")
@@ -55,7 +61,7 @@ export async function searchCategoriesSoap(term: string): Promise<SoapCategory[]
     }
   }
 
-  return categories
+  return { categories, envelope, rawResponse }
 }
 
 function escapeXml(str: string): string {

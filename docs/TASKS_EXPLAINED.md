@@ -90,6 +90,8 @@ router.post(
 3. Select both files and click **Upload & Validate**. The created database record is displayed on success.
 4. To demonstrate validation failure, remove the `<name>` element from the XML and re-upload. The error `XML: Missing required element 'name'` is returned.
 
+> **UX note:** The XML and JSON editors are backed by a Zustand store (`frontend/src/store/task1Store.ts`), so their content persists when you navigate to another task and return. Toast notifications appear on success and error.
+
 ---
 
 ## Task 2 — SOAP Service with XPath Filtering
@@ -148,9 +150,9 @@ const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
 ### How to demo
 
 1. Navigate to **Task 2** in the frontend.
-2. Click **Generate categories.xml** — this calls `GET /api/generate-xml` and writes the XML file.
-3. Enter a search term such as `electr` in the search box and click **Search via SOAP**.
-4. The Electronics category matching the term is returned in a table.
+2. Click **Generate XML** — this calls `GET /api/generate-xml` and writes the XML file.
+3. Enter a search term such as `electr` in the search box and click **Search via SOAP**. The matching categories appear in the results table, and the raw SOAP envelope/response panels can be expanded below.
+4. Click **Show All** to fetch every category via SOAP with an empty term (XPath `contains(x, '')` always matches). A right-hand sidebar slides in listing all categories with a live filter input at the top.
 5. You can inspect the raw SOAP WSDL at `http://localhost:3001/soap?wsdl`.
 
 ---
@@ -289,8 +291,8 @@ app.get("/api/weather", (req, res) => {
 1. Ensure the gRPC server is running (`npm run dev` in `grpc-server/`).
 2. Navigate to **Task 4** in the frontend.
 3. Enter `Zagreb` in the city input and click **Get Temperature**.
-4. A table of matching Croatian weather stations with city, temperature, and description is displayed.
-5. Enter a partial name like `Split` to see stations from the Split area.
+4. A grid of matching Croatian weather stations with city, temperature badge, and description is displayed.
+5. Use the **Filter by city…** input that appears below the results to narrow the displayed station cards without making a new gRPC call.
 
 ---
 
@@ -385,8 +387,8 @@ type Mutation {
 
 1. Navigate to the frontend at `http://localhost:5173`. You are redirected to the login page.
 2. Log in as `admin@iis.hr` / `admin123` (full-access). All CRUD buttons are active.
-3. In **Task 5**, create a new category with name `Demo`, slug `demo`, and a description.
-4. Edit the category and change its name. Delete it.
+3. In **Task 5**, create a new category with name `Demo`, slug `demo`, and a description using the **Add an entry** form.
+4. Click the pencil icon on any row to edit it **inline** — the name, slug, and description cells become inputs. Press `Enter` or click the checkmark to save, `Escape` or ✕ to cancel. Delete via the trash icon (with confirmation).
 5. In the GraphQL panel, run the default query to list all categories. Observe the JWT is sent automatically.
 6. Log out, log in as `reader@iis.hr` / `reader123` (read-only). The create/update/delete controls are disabled.
 7. Visit **Settings** and toggle to **Strapi Proxy**. `GET /api/categories` now proxies to Strapi (will return 502 if Strapi is not running — expected).

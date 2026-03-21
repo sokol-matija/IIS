@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<imenik>
+    <osoba oib="12345678901">
+        <ime>Ana</ime>
+        <prezime>Anić</prezime>
+        <email>ana.anic@example.com</email>
+        <adresa>
+            <ulica>Ilica</ulica>
+            <kucniBroj>10</kucniBroj>
+            <mjesto>Zagreb</mjesto>
+            <postanskiBroj>10000</postanskiBroj>
+        </adresa>
+        <telefon>091-111-2222</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+    <osoba oib="98765432100">
+        <ime>Ivan</ime>
+        <prezime>Ivić</prezime>
+        <email>ivan.ivic@firma.hr</email>
+        <adresa>
+            <ulica>Savska</ulica>
+            <kucniBroj>5A</kucniBroj>
+            <mjesto>Zagreb</mjesto>
+            <postanskiBroj>10000</postanskiBroj>
+        </adresa>
+        <telefon>099-333-4444</telefon>
+        <kategorija>Poslovni</kategorija>
+    </osoba>
+    <osoba oib="11122233344">
+        <ime>Maja</ime>
+        <prezime>Majić</prezime>
+        <email>maja.majic@email.com</email>
+        <adresa>
+            <ulica>Vukovarska</ulica>
+            <kucniBroj>42</kucniBroj>
+            <mjesto>Split</mjesto>
+            <postanskiBroj>21000</postanskiBroj>
+        </adresa>
+        <telefon>095-555-6666</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+</imenik>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prostori>
+    <prostor>
+        <id>1</id>
+        <povrsina>45</povrsina>
+        <lokacija>Zagreb, Ilica 10</lokacija>
+    </prostor>
+    <prostor>
+        <id>2</id>
+        <povrsina>120</povrsina>
+        <lokacija>Split, Vukovarska 5</lokacija>
+    </prostor>
+    <prostor>
+        <id>3</id>
+        <povrsina>30</povrsina>
+        <lokacija>Rijeka, Korzo 7</lokacija>
+    </prostor>
+</prostori>

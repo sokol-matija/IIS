@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<imenik>
+    <osoba OIB="12345678901">
+        <ime>Ana</ime>
+        <prezime>Horvat</prezime>
+        <email>ana.horvat@email.hr</email>
+        <adresa>
+            <ulica>Ilica</ulica>
+            <kucni_broj>12</kucni_broj>
+            <mjesto>Zagreb</mjesto>
+            <postanski_broj>10000</postanski_broj>
+        </adresa>
+        <telefon>0992223333</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+     <osoba OIB="12343678901">
+        <ime>Iva</ime>
+        <prezime>Horvat</prezime>
+        <email>iva.horvat@email.hr</email>
+        <adresa>
+            <ulica>Vlaška</ulica>
+            <kucni_broj>15A</kucni_broj>
+            <mjesto>Zagreb</mjesto>
+            <postanski_broj>10001</postanski_broj>
+        </adresa>
+        <telefon>0994567890</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+    <osoba OIB="22345678901">
+        <ime>Luka</ime>
+        <prezime>Kovač</prezime>
+        <email>luka.kovac@email.hr</email>
+        <adresa>
+            <ulica>Petrinjska</ulica>
+            <kucni_broj>8</kucni_broj>
+            <mjesto>Zadar</mjesto>
+            <postanski_broj>23000</postanski_broj>
+        </adresa>
+        <telefon>0951112233</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+    <osoba OIB="32345678901">
+        <ime>Maja</ime>
+        <prezime>Novak</prezime>
+        <email>maja.novak@email.hr</email>
+        <adresa>
+            <ulica>Jurišićeva</ulica>
+            <kucni_broj>22</kucni_broj>
+            <mjesto>Rijeka</mjesto>
+            <postanski_broj>51000</postanski_broj>
+        </adresa>
+        <telefon>0913334455</telefon>
+        <kategorija>Privatni</kategorija>
+    </osoba>
+</imenik>

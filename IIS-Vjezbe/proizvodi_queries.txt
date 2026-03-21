@@ -1,0 +1,44 @@
+
+
+1. Dohvati sve proizvode čiji naziv započinje sa "V"
+Q:
+for $p in ./Proizvodi//Proizvod
+where starts-with($p/Naziv, "V")
+return $p
+
+R:
+<Proizvod ID="11">
+  <Naziv>Vitamixer</Naziv>
+  <Kategorija>Kućanski aparati</Kategorija>
+</Proizvod>
+<Proizvod ID="20">
+  <Naziv>Vaga</Naziv>
+  <Kategorija>Sport</Kategorija>
+</Proizvod>
+
+2. Dohvat naziva proizvoda čiji ID je veći od 10
+Q:
+for $p in ./Proizvodi//Proizvod
+where xs:integer($p/@ID) > 10
+return $p/Naziv
+
+R:
+<Naziv>Monitor</Naziv>
+<Naziv>Vaga</Naziv>
+
+3. Dohvati sve proizvode čija kategorija je dulja od 5 znakova
+Q:
+for $p in ./Proizvodi//Proizvod
+where string-length($p/Kategorija) > 5
+return $p
+
+R:
+<Proizvod ID="11">
+  <Naziv>Vitamixer</Naziv>
+  <Kategorija>Kućanski aparati</Kategorija>
+</Proizvod>
+<Proizvod ID="15">
+  <Naziv>Monitor</Naziv>
+  <Kategorija>Elektronika</Kategorija>
+</Proizvod>
+

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Proizvodi>
+
+  <Proizvod ID="9">
+    <Naziv>Vitamixer</Naziv>
+    <Kategorija>Kućanski aparati</Kategorija>
+  </Proizvod>
+
+  <Proizvod ID="15">
+    <Naziv>Monitor</Naziv>
+    <Kategorija>Elektronika</Kategorija>
+  </Proizvod>
+
+  <Proizvod ID="20">
+    <Naziv>Vaga</Naziv>
+    <Kategorija>Sport</Kategorija>
+  </Proizvod>
+
+</Proizvodi>

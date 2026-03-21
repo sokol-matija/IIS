@@ -3,6 +3,7 @@ package imenik;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import java.io.File;
 import java.math.BigInteger;
@@ -77,7 +78,17 @@ public class Main {
 
         File file = new File("imenik.xml");
         m.marshal(imenik, file);
+        m.marshal(imenik, System.out);
 
         System.out.println("\nImenik spremljen u: " + file.getAbsolutePath());
+
+        // Unmarshal - čitanje XML datoteke natrag u Java objekte
+        System.out.println("\n--- UNMARSHAL ---");
+        Unmarshaller u = jc.createUnmarshaller();
+        Imenik ucitaniImenik = (Imenik) u.unmarshal(file);
+
+        for (Imenik.Osoba o : ucitaniImenik.getOsoba()) {
+            System.out.println(o.getIme() + " " + o.getPrezime() + " (" + o.getKategorija() + ") - " + o.getAdresa().getMjesto());
+        }
     }
 }

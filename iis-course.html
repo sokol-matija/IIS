@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IIS: How Enterprise Systems Talk to Each Other</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ========== DESIGN TOKENS ========== */
+:root {
+  --color-bg:             #FAF7F2;
+  --color-bg-warm:        #F5F0E8;
+  --color-bg-code:        #1E1E2E;
+  --color-text:           #2C2A28;
+  --color-text-secondary: #6B6560;
+  --color-text-muted:     #9E9790;
+  --color-border:         #E5DFD6;
+  --color-border-light:   #EEEBE5;
+  --color-surface:        #FFFFFF;
+  --color-surface-warm:   #FDF9F3;
+  --color-accent:         #2A7B9B;
+  --color-accent-hover:   #1F6680;
+  --color-accent-light:   #E4F2F7;
+  --color-accent-muted:   #5EA3BD;
+  --color-success:        #2D8B55;
+  --color-success-light:  #E8F5EE;
+  --color-error:          #C93B3B;
+  --color-error-light:    #FDE8E8;
+  --color-info:           #2A7B9B;
+  --color-info-light:     #E4F2F7;
+  --color-actor-1:        #D94F30;
+  --color-actor-2:        #2A7B9B;
+  --color-actor-3:        #7B6DAA;
+  --color-actor-4:        #D4A843;
+  --color-actor-5:        #2D8B55;
+
+  --font-display: 'Bricolage Grotesque', Georgia, serif;
+  --font-body:    'DM Sans', -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+  --text-6xl:  3.75rem;
+
+  --leading-tight:  1.15;
+  --leading-snug:   1.3;
+  --leading-normal: 1.6;
+  --leading-loose:  1.8;
+
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --content-width:      800px;
+  --content-width-wide: 1000px;
+  --nav-height:         50px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-full: 9999px;
+
+  --shadow-sm:  0 1px 2px rgba(44, 42, 40, 0.05);
+  --shadow-md:  0 4px 12px rgba(44, 42, 40, 0.08);
+  --shadow-lg:  0 8px 24px rgba(44, 42, 40, 0.1);
+  --shadow-xl:  0 16px 48px rgba(44, 42, 40, 0.12);
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast:   150ms;
+  --duration-normal: 300ms;
+  --duration-slow:   500ms;
+  --stagger-delay:   120ms;
+}
+
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-snap-type: y proximity; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(42, 123, 155, 0.03) 0%, transparent 50%);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
+pre, code { white-space: pre-wrap; word-break: break-word; overflow-x: hidden; }
+pre::-webkit-scrollbar, .translation-code::-webkit-scrollbar { display: none; }
+img { max-width: 100%; }
+a { color: var(--color-accent); }
+
+/* ========== NAV ========== */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--nav-height); z-index: 100;
+  background: rgba(250, 247, 242, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 3px;
+  background: var(--color-accent); width: 0%;
+  transition: width 100ms linear;
+}
+.nav-inner {
+  max-width: var(--content-width-wide);
+  margin: 0 auto; height: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-6);
+}
+.nav-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: var(--text-sm); color: var(--color-text);
+}
+.nav-dots { display: flex; gap: var(--space-3); }
+.nav-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--color-text-muted);
+  background: transparent; cursor: pointer;
+  transition: all var(--duration-fast);
+  position: relative;
+}
+.nav-dot:hover { border-color: var(--color-accent); }
+.nav-dot.active { border-color: var(--color-accent); background: var(--color-accent); box-shadow: 0 0 8px rgba(42, 123, 155, 0.4); }
+.nav-dot.visited { border-color: var(--color-accent); background: var(--color-accent); }
+.nav-dot[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--color-bg-code); color: #CDD6F4;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm);
+  font-size: var(--text-xs); font-family: var(--font-body);
+  white-space: nowrap; pointer-events: none; z-index: 200;
+}
+
+/* ========== MODULES ========== */
+.module {
+  min-height: 100dvh; min-height: 100vh;
+  scroll-snap-align: start;
+  padding: var(--space-16) var(--space-6);
+  padding-top: calc(var(--nav-height) + var(--space-12));
+}
+.module-content { max-width: var(--content-width); margin: 0 auto; }
+.module-header { margin-bottom: var(--space-12); }
+.module-number {
+  font-family: var(--font-display); font-size: var(--text-6xl);
+  font-weight: 800; color: var(--color-accent); opacity: 0.15;
+  line-height: var(--leading-tight);
+}
+.module-title {
+  font-family: var(--font-display); font-size: var(--text-4xl);
+  font-weight: 700; line-height: var(--leading-tight);
+  margin-top: var(--space-2);
+}
+.module-subtitle {
+  font-size: var(--text-lg); color: var(--color-text-secondary);
+  margin-top: var(--space-3); max-width: 600px;
+}
+.screen { margin-bottom: var(--space-16); }
+.screen-heading {
+  font-family: var(--font-display); font-size: var(--text-2xl);
+  font-weight: 600; margin-bottom: var(--space-6);
+}
+
+/* ========== ANIMATIONS ========== */
+.animate-in {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity var(--duration-slow) var(--ease-out), transform var(--duration-slow) var(--ease-out);
+}
+.animate-in.visible { opacity: 1; transform: translateY(0); }
+.stagger-children > .animate-in {
+  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-delay));
+}
+
+/* ========== TRANSLATION BLOCKS ========== */
+.translation-block {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  border-radius: var(--radius-md); overflow: hidden;
+  box-shadow: var(--shadow-md); margin: var(--space-8) 0;
+}
+.translation-code {
+  background: var(--color-bg-code); color: #CDD6F4;
+  padding: var(--space-6); font-family: var(--font-mono);
+  font-size: var(--text-sm); line-height: 1.7;
+  position: relative; overflow-x: hidden;
+}
+.translation-code pre, .translation-code code { white-space: pre-wrap; word-break: break-word; overflow-x: hidden; }
+.translation-english {
+  background: var(--color-surface-warm); padding: var(--space-6);
+  font-size: var(--text-sm); line-height: 1.7;
+  border-left: 3px solid var(--color-accent); position: relative;
+}
+.translation-label {
+  position: absolute; top: var(--space-2); right: var(--space-3);
+  font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.1em; opacity: 0.5;
+}
+.translation-english .translation-label { color: var(--color-text-muted); }
+.tl { margin-bottom: var(--space-3); padding-left: var(--space-3); border-left: 2px solid var(--color-border-light); }
+.tl:last-child { margin-bottom: 0; }
+
+/* ========== CODE SYNTAX ========== */
+.code-keyword  { color: #CBA6F7; }
+.code-string   { color: #A6E3A1; }
+.code-function { color: #89B4FA; }
+.code-comment  { color: #6C7086; }
+.code-number   { color: #FAB387; }
+.code-property { color: #F9E2AF; }
+.code-operator { color: #94E2D5; }
+.code-tag      { color: #F38BA8; }
+.code-attr     { color: #F9E2AF; }
+.code-value    { color: #A6E3A1; }
+
+/* ========== QUIZZES ========== */
+.quiz-container { margin: var(--space-8) 0; }
+.quiz-question-block { margin-bottom: var(--space-8); }
+.quiz-question {
+  font-family: var(--font-display); font-size: var(--text-xl);
+  font-weight: 600; margin-bottom: var(--space-4);
+}
+.quiz-options { display: flex; flex-direction: column; gap: var(--space-3); }
+.quiz-option {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); cursor: pointer; width: 100%;
+  font-family: var(--font-body); font-size: var(--text-base);
+  text-align: left;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+.quiz-option:hover { border-color: var(--color-accent-muted); }
+.quiz-option.selected { border-color: var(--color-accent); background: var(--color-accent-light); }
+.quiz-option.correct { border-color: var(--color-success); background: var(--color-success-light); }
+.quiz-option.incorrect { border-color: var(--color-error); background: var(--color-error-light); }
+.quiz-option-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--color-border); flex-shrink: 0;
+  transition: all var(--duration-fast);
+}
+.quiz-option.selected .quiz-option-radio {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 3px white;
+}
+.quiz-feedback {
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height var(--duration-normal), opacity var(--duration-normal), padding var(--duration-normal);
+  border-radius: var(--radius-sm); font-size: var(--text-sm); line-height: var(--leading-normal);
+}
+.quiz-feedback.show { max-height: 200px; opacity: 1; padding: var(--space-3); margin-top: var(--space-2); }
+.quiz-feedback.success { background: var(--color-success-light); color: var(--color-success); }
+.quiz-feedback.error { background: var(--color-error-light); color: var(--color-error); }
+.quiz-feedback.warning { background: var(--color-accent-light); color: var(--color-accent); }
+.quiz-check-btn, .quiz-reset-btn {
+  padding: var(--space-3) var(--space-6); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--text-sm);
+  cursor: pointer; border: none; margin-right: var(--space-3); margin-top: var(--space-4);
+}
+.quiz-check-btn { background: var(--color-accent); color: white; }
+.quiz-check-btn:hover { background: var(--color-accent-hover); }
+.quiz-reset-btn { background: var(--color-border-light); color: var(--color-text); }
+
+/* ========== CHAT ANIMATION ========== */
+.chat-window {
+  background: var(--color-surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); overflow: hidden; margin: var(--space-8) 0;
+  border: 1px solid var(--color-border-light);
+}
+.chat-header {
+  background: var(--color-bg-code); color: #CDD6F4;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.chat-messages { padding: var(--space-4); min-height: 200px; max-height: 500px; overflow-y: auto; }
+.chat-message {
+  display: flex; gap: var(--space-3); margin-bottom: var(--space-4);
+  animation: fadeSlideUp 0.3s var(--ease-out);
+}
+.chat-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: var(--text-sm);
+  font-family: var(--font-mono); flex-shrink: 0;
+}
+.chat-bubble {
+  background: var(--color-surface-warm); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4); max-width: 75%;
+  border: 1px solid var(--color-border-light);
+}
+.chat-sender { font-weight: 600; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: var(--space-1); }
+.chat-bubble p { font-size: var(--text-sm); margin: 0; line-height: var(--leading-normal); }
+.chat-typing {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-3);
+}
+.chat-typing-dots { display: flex; gap: 4px; }
+.typing-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--color-text-muted); animation: typingBounce 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.chat-controls {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.chat-controls button {
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  cursor: pointer; font-family: var(--font-body); font-size: var(--text-sm);
+  transition: background var(--duration-fast);
+}
+.chat-controls button:hover { background: var(--color-accent-light); }
+.chat-progress { font-size: var(--text-xs); color: var(--color-text-muted); margin-left: auto; }
+
+/* ========== FLOW ANIMATION ========== */
+.flow-animation {
+  background: var(--color-surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); padding: var(--space-8);
+  margin: var(--space-8) 0; border: 1px solid var(--color-border-light);
+}
+.flow-actors {
+  display: flex; justify-content: space-around; align-items: center;
+  margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-4);
+}
+.flow-actor {
+  text-align: center; padding: var(--space-4);
+  border-radius: var(--radius-md); border: 2px solid var(--color-border);
+  transition: all var(--duration-normal) var(--ease-out);
+  min-width: 100px;
+}
+.flow-actor.active {
+  box-shadow: 0 0 0 3px var(--color-accent), 0 0 20px rgba(42, 123, 155, 0.2);
+  transform: scale(1.05); border-color: var(--color-accent);
+}
+.flow-actor-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto var(--space-2); font-size: 1.5rem;
+  color: white; font-weight: 700; font-family: var(--font-mono);
+}
+.flow-actor span { font-size: var(--text-sm); font-weight: 600; }
+.flow-step-label {
+  text-align: center; padding: var(--space-4);
+  background: var(--color-surface-warm); border-radius: var(--radius-sm);
+  font-size: var(--text-base); margin-bottom: var(--space-6);
+  min-height: 56px; display: flex; align-items: center; justify-content: center;
+  border-left: 3px solid var(--color-accent);
+}
+.flow-controls {
+  display: flex; align-items: center; gap: var(--space-3); justify-content: center;
+}
+.flow-controls button {
+  padding: var(--space-2) var(--space-5); border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  cursor: pointer; font-family: var(--font-body); font-size: var(--text-sm);
+}
+.flow-controls button:first-child { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+.flow-progress { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+/* ========== CALLOUTS ========== */
+.callout {
+  display: flex; gap: var(--space-4); padding: var(--space-5);
+  border-radius: var(--radius-md); margin: var(--space-8) 0;
+}
+.callout-accent { background: var(--color-accent-light); border-left: 4px solid var(--color-accent); }
+.callout-info { background: var(--color-info-light); border-left: 4px solid var(--color-info); }
+.callout-warning { background: var(--color-error-light); border-left: 4px solid var(--color-error); }
+.callout-icon { font-size: 1.5rem; flex-shrink: 0; }
+.callout-content { flex: 1; }
+.callout-title { font-family: var(--font-display); font-weight: 600; display: block; margin-bottom: var(--space-2); }
+.callout-content p { font-size: var(--text-sm); line-height: var(--leading-normal); margin: 0; }
+
+/* ========== PATTERN CARDS ========== */
+.pattern-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4); margin: var(--space-8) 0;
+}
+.pattern-card {
+  background: var(--color-surface); border-radius: var(--radius-md);
+  padding: var(--space-6); box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal);
+}
+.pattern-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.pattern-icon {
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; margin-bottom: var(--space-3); color: white;
+}
+.pattern-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); margin-bottom: var(--space-2); }
+.pattern-desc { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: var(--leading-normal); margin: 0; }
+
+/* ========== FLOW STEPS ========== */
+.flow-steps {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin: var(--space-8) 0; flex-wrap: wrap; justify-content: center;
+}
+.flow-step {
+  background: var(--color-surface); border-radius: var(--radius-md);
+  padding: var(--space-4); text-align: center; min-width: 120px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--color-border-light);
+}
+.flow-step-num-inline {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--color-accent); color: white; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: var(--text-sm);
+  margin: 0 auto var(--space-2);
+}
+.flow-step p { font-size: var(--text-sm); margin: 0; }
+.flow-arrow { font-size: var(--text-2xl); color: var(--color-accent); font-weight: 700; }
+
+/* ========== STEP CARDS ========== */
+.step-cards { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-8) 0; }
+.step-card {
+  display: flex; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface); border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm);
+}
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--color-accent); color: white; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); flex-shrink: 0;
+}
+.step-body strong { font-family: var(--font-display); }
+.step-body p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+
+/* ========== ICON ROWS ========== */
+.icon-rows { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-8) 0; }
+.icon-row {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-4); background: var(--color-surface);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+}
+.icon-row p { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.icon-circle {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; flex-shrink: 0; color: white;
+}
+
+/* ========== FILE TREE ========== */
+.file-tree { font-family: var(--font-mono); font-size: var(--text-sm); margin: var(--space-6) 0; background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-sm); }
+.ft-folder, .ft-file { padding: var(--space-2) var(--space-3); border-left: 2px solid var(--color-border-light); margin-left: var(--space-4); }
+.ft-folder > .ft-name { color: var(--color-accent); font-weight: 600; }
+.ft-file > .ft-name { color: var(--color-text); }
+.ft-desc { color: var(--color-text-secondary); font-family: var(--font-body); margin-left: var(--space-2); font-size: var(--text-xs); }
+.ft-children { margin-left: var(--space-4); }
+
+/* ========== GLOSSARY TOOLTIPS ========== */
+.term {
+  border-bottom: 1.5px dashed var(--color-accent-muted);
+  cursor: pointer; position: relative;
+}
+.term:hover, .term.active { border-bottom-color: var(--color-accent); color: var(--color-accent); }
+.term-tooltip {
+  position: fixed; background: var(--color-bg-code); color: #CDD6F4;
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm);
+  font-size: var(--text-sm); font-family: var(--font-body);
+  line-height: var(--leading-normal); width: max(200px, min(320px, 80vw));
+  box-shadow: var(--shadow-lg); pointer-events: none; opacity: 0;
+  transition: opacity var(--duration-fast); z-index: 10000;
+}
+.term-tooltip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%); border: 6px solid transparent;
+  border-top-color: var(--color-bg-code);
+}
+.term-tooltip.visible { opacity: 1; }
+.term-tooltip.flip::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--color-bg-code); }
+
+/* ========== BADGE LIST ========== */
+.badge-list { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-6) 0; }
+.badge-item {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm); transition: border-color var(--duration-fast);
+}
+.badge-item:hover { border-color: var(--color-accent-muted); }
+.badge-code {
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  background: var(--color-bg-code); color: #CBA6F7;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* ========== ARCH DIAGRAM ========== */
+.arch-diagram {
+  background: var(--color-surface); border-radius: var(--radius-lg);
+  padding: var(--space-8); box-shadow: var(--shadow-md);
+  margin: var(--space-8) 0; border: 1px solid var(--color-border-light);
+}
+.arch-zones { display: flex; gap: var(--space-6); flex-wrap: wrap; justify-content: center; }
+.arch-zone {
+  border: 2px dashed var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-4); min-width: 180px; flex: 1;
+}
+.arch-zone-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--color-text-muted); margin-bottom: var(--space-3);
+}
+.arch-component {
+  background: var(--color-surface-warm); border-radius: var(--radius-sm);
+  padding: var(--space-3); margin-bottom: var(--space-2); cursor: pointer;
+  border: 1px solid var(--color-border-light);
+  transition: all var(--duration-fast); text-align: center;
+}
+.arch-component:hover { border-color: var(--color-accent); background: var(--color-accent-light); }
+.arch-component span { font-size: var(--text-sm); font-weight: 500; }
+.arch-description {
+  margin-top: var(--space-6); padding: var(--space-4);
+  background: var(--color-surface-warm); border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-accent);
+  font-size: var(--text-sm); text-align: center;
+  min-height: 48px; display: flex; align-items: center; justify-content: center;
+}
+.arch-arrow {
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-2xl); color: var(--color-accent); font-weight: 700;
+  flex-shrink: 0; align-self: center;
+}
+
+/* ========== SCENARIO QUIZ ========== */
+.scenario-block { margin-bottom: var(--space-8); }
+.scenario-context {
+  background: var(--color-surface-warm); border-radius: var(--radius-md);
+  padding: var(--space-5); margin-bottom: var(--space-4);
+  border-left: 3px solid var(--color-actor-4);
+}
+.scenario-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--color-actor-4); font-weight: 600;
+  display: block; margin-bottom: var(--space-2);
+}
+.scenario-context p { font-size: var(--text-base); margin: 0; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  :root { --text-4xl: 1.875rem; --text-5xl: 2.25rem; --text-6xl: 3rem; }
+  .translation-block { grid-template-columns: 1fr; }
+  .translation-english { border-left: none; border-top: 3px solid var(--color-accent); }
+  .pattern-cards { grid-template-columns: 1fr 1fr; }
+  .flow-steps { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
+  .arch-zones { flex-direction: column; }
+}
+@media (max-width: 480px) {
+  :root { --text-4xl: 1.5rem; --text-5xl: 1.875rem; --text-6xl: 2.25rem; }
+  .module { padding: var(--space-8) var(--space-4); }
+  .pattern-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAVIGATION ========== -->
+<nav class="nav">
+  <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0"></div>
+  <div class="nav-inner">
+    <span class="nav-title">IIS: How Systems Talk</span>
+    <div class="nav-dots">
+      <button class="nav-dot" data-target="module-1" data-tooltip="What This App Does" role="tab" aria-label="Module 1"></button>
+      <button class="nav-dot" data-target="module-2" data-tooltip="Meet the Cast" role="tab" aria-label="Module 2"></button>
+      <button class="nav-dot" data-target="module-3" data-tooltip="Four Languages" role="tab" aria-label="Module 3"></button>
+      <button class="nav-dot" data-target="module-4" data-tooltip="Data & Validation" role="tab" aria-label="Module 4"></button>
+      <button class="nav-dot" data-target="module-5" data-tooltip="The Security Gate" role="tab" aria-label="Module 5"></button>
+      <button class="nav-dot" data-target="module-6" data-tooltip="Clever Patterns" role="tab" aria-label="Module 6"></button>
+      <button class="nav-dot" data-target="module-7" data-tooltip="The Big Picture" role="tab" aria-label="Module 7"></button>
+    </div>
+  </div>
+</nav>
+
+<!-- =====================================================================
+     MODULE 1: WHAT THIS APP DOES
+     ===================================================================== -->
+<section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">What This App Does</h1>
+      <p class="module-subtitle">A full-stack system that demonstrates how enterprise software components communicate — using REST, SOAP, GraphQL, and gRPC, all in one project.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Elevator Pitch</h2>
+        <p style="max-width:600px; margin-bottom: var(--space-6);">Imagine a <span class="term" data-definition="A 'category manager' is a simple tool for creating, reading, updating, and deleting items in a database — the four basic operations every app needs (often called CRUD).">category manager</span> — you can create categories like "Electronics" or "Books," search them, validate their data, and check the weather. Sounds simple, right?</p>
+        <p style="max-width:600px; margin-bottom: var(--space-6);">The twist: this one app talks to itself in <strong>four completely different languages</strong>. It's like a United Nations building where every department speaks a different language, but they all work together seamlessly.</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">R</div>
+            <h4 class="pattern-title">REST</h4>
+            <p class="pattern-desc">The everyday language — simple, direct requests like "give me all categories" or "create this one."</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">S</div>
+            <h4 class="pattern-title">SOAP</h4>
+            <p class="pattern-desc">The formal, bureaucratic language — wraps every message in an XML "envelope" with strict rules.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">G</div>
+            <h4 class="pattern-title">GraphQL</h4>
+            <p class="pattern-desc">The "pick exactly what you want" language — you specify which fields you need, nothing more.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">g</div>
+            <h4 class="pattern-title">gRPC</h4>
+            <p class="pattern-desc">The fast, binary language — used for server-to-server calls where speed matters more than readability.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Let's Trace a Real Action</h2>
+        <p style="margin-bottom: var(--space-4);">You open the app, log in, and search for a category named "tech." Here's the journey your request takes — from your fingertip to the database and back:</p>
+
+        <div class="step-cards stagger-children">
+          <div class="step-card animate-in">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>You type your email and password</strong>
+              <p>The <span class="term" data-definition="The frontend is the part of the app that runs in your browser — everything you see and click. It's built with React, a popular tool for building interactive user interfaces.">frontend</span> (React app in your browser) sends your credentials to the <span class="term" data-definition="The backend is the part of the app that runs on a server — it handles business logic, talks to the database, and processes requests. You never see it directly.">backend</span>.</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>The backend checks your identity</strong>
+              <p>It looks up your email in the <span class="term" data-definition="A database is a structured place where data is stored permanently — like a filing cabinet that never forgets. This project uses SQLite, a lightweight database that stores everything in a single file.">database</span>, verifies your password, and issues a <span class="term" data-definition="A JSON Web Token (JWT) is a digital 'pass' — like a wristband at a concert. It proves who you are without the server having to remember you. It contains your identity encoded as text.">JWT token</span>.</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>You navigate to SOAP Search</strong>
+              <p>You type "tech" and hit search. The frontend builds a <span class="term" data-definition="A SOAP envelope is an XML wrapper around your message — like putting a letter inside a formal business envelope with specific formatting rules. It tells the server exactly how to interpret your request.">SOAP envelope</span> (XML message) and sends it to the backend.</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>The backend searches using XPath</strong>
+              <p>It reads an <span class="term" data-definition="XML (eXtensible Markup Language) is a way to structure data using tags, like HTML but for data instead of web pages. Example: &lt;name&gt;Electronics&lt;/name&gt;. It's very common in enterprise systems.">XML</span> file, uses <span class="term" data-definition="XPath is a query language for XML — like a search engine specifically designed to find things inside XML documents. It uses path expressions like '//category[name=tech]' to locate data.">XPath</span> to find matching categories, and wraps the results in a SOAP response.</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <strong>Results appear on screen</strong>
+              <p>The frontend parses the SOAP response, extracts the categories, and renders them in a table. Total time: under a second.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why Should You Care?</h2>
+        <div class="callout callout-accent">
+          <div class="callout-icon">&#x1F4A1;</div>
+          <div class="callout-content">
+            <strong class="callout-title">The Universal Skill</strong>
+            <p>Every serious software system uses multiple communication protocols. Understanding them means you can steer AI coding tools with precision: "Use REST for the CRUD operations, but add a GraphQL endpoint for the dashboard" — that's the kind of instruction that saves hours of back-and-forth.</p>
+          </div>
+        </div>
+
+        <!-- QUIZ -->
+        <div class="quiz-container" id="m1-quiz">
+          <div class="quiz-question-block" data-question="m1q1" data-correct="m1q1-c">
+            <h3 class="quiz-question">A user reports: "I can search categories but can't create new ones." Based on what you know so far, which protocol is likely working fine?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="m1q1-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>REST — because creating uses REST</span>
+              </button>
+              <button class="quiz-option" data-value="m1q1-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>GraphQL — because searching uses GraphQL</span>
+              </button>
+              <button class="quiz-option" data-value="m1q1-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>SOAP — because searching uses SOAP</span>
+              </button>
+            </div>
+            <div class="quiz-feedback" id="m1q1-feedback"></div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('m1-quiz', {
+            'm1q1': {
+              correct: 'Exactly! Search uses SOAP with XPath — if it works, SOAP is fine. The bug is likely in the REST route for creating categories, or in the user\'s permissions.',
+              incorrect: 'Not quite — searching categories goes through the SOAP service with XPath filtering. Since searching works, that means SOAP is functioning. The create operation uses REST, which is where the bug probably lives.'
+            }
+          })">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m1-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 2: MEET THE CAST
+     ===================================================================== -->
+<section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Meet the Cast</h1>
+      <p class="module-subtitle">Three systems work together like a film crew — each with a distinct role that keeps the whole production running.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Three Main Actors</h2>
+        <p style="margin-bottom: var(--space-4);">Think of this project as a film production. There's the director everyone sees (frontend), the producer handling logistics behind the scenes (backend), and a specialist consultant called in for one specific job (gRPC server).</p>
+
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">FE</div>
+            <div>
+              <strong>Frontend — React SPA (port 5173)</strong>
+              <p>What you see and click. Built with <span class="term" data-definition="React is a JavaScript library for building user interfaces. It lets you create reusable 'components' (like a search bar or a form) and efficiently updates only the parts of the page that change.">React 19</span>, <span class="term" data-definition="TypeScript is JavaScript with added type checking — it catches errors before your code runs. Like spell-check for code: it won't stop you from writing nonsense, but it'll flag obvious mistakes.">TypeScript</span>, and <span class="term" data-definition="Tailwind CSS is a utility-first CSS framework — instead of writing custom styles, you compose them from pre-built classes like 'bg-blue-500 text-white p-4'. It's like LEGO for styling.">Tailwind CSS</span>.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">BE</div>
+            <div>
+              <strong>Backend — Express Server (port 3001)</strong>
+              <p>The brain. Handles auth, database, REST routes, GraphQL, SOAP, and proxies gRPC calls. Built with <span class="term" data-definition="Express.js is a minimal web framework for Node.js — it handles incoming HTTP requests and routes them to the right handler. Think of it as a switchboard operator for web traffic.">Express.js</span> + <span class="term" data-definition="Prisma is an ORM (Object-Relational Mapper) — it lets you talk to your database using TypeScript instead of writing raw SQL queries. You write 'prisma.category.findMany()' instead of 'SELECT * FROM categories'.">Prisma</span>.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-5)">gR</div>
+            <div>
+              <strong>gRPC Server — Weather Service (port 50051)</strong>
+              <p>A specialist. Its only job: fetch live weather data from Croatia's meteorological service and serve it over <span class="term" data-definition="gRPC is a high-performance communication protocol by Google. Instead of sending human-readable text (like JSON), it sends compact binary data — much faster but not something you'd read with your eyes.">gRPC</span>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The File Map</h2>
+        <p style="margin-bottom: var(--space-4);">Here's where everything lives. When you tell an AI "put this in the right place," knowing this map is the difference between a clean project and spaghetti code.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">frontend/src/</span>
+            <span class="ft-desc">The React application</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">App.tsx</span> <span class="ft-desc">Router — maps URLs to pages</span></div>
+              <div class="ft-folder">
+                <span class="ft-name">pages/</span> <span class="ft-desc">One file per screen (Task1Page, Task2Page...)</span>
+              </div>
+              <div class="ft-folder">
+                <span class="ft-name">api/</span> <span class="ft-desc">HTTP clients — how frontend talks to backend</span>
+              </div>
+              <div class="ft-folder">
+                <span class="ft-name">store/</span> <span class="ft-desc">State management (auth, form data)</span>
+              </div>
+              <div class="ft-folder">
+                <span class="ft-name">components/</span> <span class="ft-desc">Reusable UI pieces (Layout, Table, etc.)</span>
+              </div>
+            </div>
+          </div>
+          <div class="ft-folder open" style="margin-top: var(--space-3)">
+            <span class="ft-name">backend/src/</span>
+            <span class="ft-desc">The Express server</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">index.ts</span> <span class="ft-desc">Entry point — wires everything together</span></div>
+              <div class="ft-folder"><span class="ft-name">routes/</span> <span class="ft-desc">REST endpoints (auth, categories, upload)</span></div>
+              <div class="ft-folder"><span class="ft-name">graphql/</span> <span class="ft-desc">GraphQL schema + resolvers</span></div>
+              <div class="ft-folder"><span class="ft-name">soap/</span> <span class="ft-desc">SOAP service + WSDL definition</span></div>
+              <div class="ft-folder"><span class="ft-name">middleware/</span> <span class="ft-desc">Auth checks that run before routes</span></div>
+              <div class="ft-folder"><span class="ft-name">prisma/</span> <span class="ft-desc">Database schema + seed data</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open" style="margin-top: var(--space-3)">
+            <span class="ft-name">grpc-server/</span>
+            <span class="ft-desc">The weather microservice</span>
+            <div class="ft-children">
+              <div class="ft-folder"><span class="ft-name">proto/</span> <span class="ft-desc">Protocol buffer definition (weather.proto)</span></div>
+              <div class="ft-file"><span class="ft-name">src/server.ts</span> <span class="ft-desc">gRPC server implementation</span></div>
+              <div class="ft-file"><span class="ft-name">src/weatherParser.ts</span> <span class="ft-desc">XML parser for weather data</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GROUP CHAT: Components introducing themselves -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Cast Introduces Themselves</h2>
+        <div class="chat-window" id="chat1">
+          <div class="chat-header">system-architecture.chat</div>
+          <div class="chat-messages" id="chat1-messages">
+            <div class="chat-message" data-msg="0" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend</span>
+                <p>Hey everyone! I'm the React app. I handle everything the user sees — pages, forms, buttons. I run in the browser on port 5173.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="be" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">BE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Backend</span>
+                <p>I'm the Express server on port 3001. I speak four languages: REST, SOAP, GraphQL, and I can proxy gRPC calls. I also guard the database.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend</span>
+                <p>Wait, four languages? That's a lot. Don't you get confused?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="be" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">BE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Backend</span>
+                <p>Each language lives in its own folder: routes/ for REST, graphql/ for GraphQL, soap/ for SOAP. Clean separation. I just route traffic to the right handler.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="grpc" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">gR</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">gRPC Server</span>
+                <p>And I'm the weather specialist. I only do one thing: fetch live weather data from DHMZ (Croatia's met service) and serve it as binary data over gRPC. The backend calls me when someone asks for weather.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend</span>
+                <p>So I never talk to you directly, gRPC? I always go through Backend?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="grpc" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">gR</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">gRPC Server</span>
+                <p>Exactly. Browsers can't speak gRPC natively. Backend acts as a translator — you send it a REST request, it calls me via gRPC, then sends you back JSON.</p>
+              </div>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat1-typing" style="display:none">
+            <div class="chat-avatar" id="chat1-typing-avatar" style="background: var(--color-text-muted)">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <button onclick="playChatNext('chat1')">Next Message</button>
+            <button onclick="playChatAll('chat1')">Play All</button>
+            <button onclick="resetChat('chat1')">Replay</button>
+            <span class="chat-progress" id="chat1-progress">0 / 7 messages</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check Your Understanding</h2>
+        <div class="quiz-container" id="m2-quiz">
+          <div class="quiz-question-block" data-question="m2q1" data-correct="m2q1-b">
+            <h3 class="quiz-question">You want to add a "favorites" feature. Where would you add the database table?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="m2q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>frontend/src/store/ — it manages state</span></button>
+              <button class="quiz-option" data-value="m2q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>backend/prisma/schema.prisma — it defines the database</span></button>
+              <button class="quiz-option" data-value="m2q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>grpc-server/proto/ — it defines data structures</span></button>
+            </div>
+            <div class="quiz-feedback" id="m2q1-feedback"></div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('m2-quiz', {
+            'm2q1': {
+              correct: 'Exactly! Prisma schema is where all database tables are defined. You\'d add a Favorite model there, then run a migration to create the table.',
+              incorrect: 'Not quite — database tables live in backend/prisma/schema.prisma. The store manages temporary browser state, and proto files define gRPC message shapes, not database tables.'
+            }
+          })">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m2-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 3: FOUR LANGUAGES (HOW THEY TALK)
+     ===================================================================== -->
+<section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">Four Languages, One System</h1>
+      <p class="module-subtitle">Like a multilingual embassy, each protocol serves a different purpose — and knowing when to use which one is what separates good architecture from chaos.</p>
+    </header>
+
+    <div class="module-body">
+      <!-- REST -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">REST: The Everyday Conversation</h2>
+        <p style="margin-bottom: var(--space-4);"><span class="term" data-definition="REST (Representational State Transfer) is a way of designing web APIs using standard HTTP methods: GET (read), POST (create), PUT (update), DELETE (remove). It's the most common API style today.">REST</span> is like texting — short, casual, direct. You send a message, you get a reply. No formalities required.</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/routes/categories.ts</span>
+<span class="code-keyword">router</span>.<span class="code-function">get</span>(<span class="code-string">"/"</span>, authenticate, <span class="code-keyword">async</span> (req, res) <span class="code-operator">=></span> {
+  <span class="code-keyword">const</span> categories <span class="code-operator">=</span> <span class="code-keyword">await</span> prisma.category.<span class="code-function">findMany</span>();
+  res.<span class="code-function">json</span>({ <span class="code-property">data</span>: categories });
+});</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This is the file where category routes live</p>
+              <p class="tl">When someone asks for all categories (GET /), first check they're logged in...</p>
+              <p class="tl">...then go to the database and grab every category</p>
+              <p class="tl">Send them back as JSON data</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SOAP -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">SOAP: The Formal Letter</h2>
+        <p style="margin-bottom: var(--space-4);"><span class="term" data-definition="SOAP (Simple Object Access Protocol) is an older, strict protocol that wraps all messages in XML envelopes. It's like sending a certified letter — formal, traceable, and with a return receipt. Still widely used in banking, healthcare, and government systems.">SOAP</span> is like sending a formal certified letter. Every message goes inside an envelope with a specific format. More verbose, but enterprise systems (banks, hospitals) love it because it's predictable and self-documenting.</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// frontend/src/api/soap.ts</span>
+<span class="code-keyword">const</span> envelope <span class="code-operator">=</span> <span class="code-string">`&lt;?xml version="1.0"?&gt;
+&lt;soap:Envelope
+  xmlns:soap="...soap/envelope/"
+  xmlns:tns="http://iis.hr/categories"&gt;
+  &lt;soap:Body&gt;
+    &lt;tns:SearchCategoriesRequest&gt;
+      &lt;tns:term&gt;${</span><span class="code-function">escapeXml</span>(term)<span class="code-string">}&lt;/tns:term&gt;
+    &lt;/tns:SearchCategoriesRequest&gt;
+  &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;`</span>;</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This is the file where the frontend builds SOAP requests</p>
+              <p class="tl">Start the XML document and open the SOAP envelope — like the outer envelope of a formal letter</p>
+              <p class="tl">Declare which "namespace" (department) we're writing to</p>
+              <p class="tl">Open the body — this is where the actual message goes</p>
+              <p class="tl">Say "I want to search categories" — that's our request type</p>
+              <p class="tl">Include the search term (safely escaped so special characters don't break the XML)</p>
+              <p class="tl">Close everything up — envelope sealed, ready to send</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GraphQL -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">GraphQL: The Custom Order</h2>
+        <p style="margin-bottom: var(--space-4);"><span class="term" data-definition="GraphQL is a query language invented by Facebook. Instead of the server deciding what data to send (like REST), YOU specify exactly which fields you want. Like ordering at a build-your-own-salad bar instead of picking a pre-made meal.">GraphQL</span> is like a build-your-own-salad bar. Instead of getting a fixed plate, you specify exactly which ingredients (fields) you want. Only need the name and slug? Ask for just those. Need everything? Ask for everything.</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/graphql/schema.ts</span>
+<span class="code-keyword">const</span> typeDefs <span class="code-operator">=</span> <span class="code-function">gql</span><span class="code-string">`
+  type Category {
+    id: Int!
+    name: String!
+    slug: String!
+    description: String
+  }
+
+  type Query {
+    categories: [Category!]!
+    category(id: Int!): Category
+  }
+`</span>;</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This file defines what data is available via GraphQL</p>
+              <p class="tl">A Category has these fields — the "!" means "required, never null"</p>
+              <p class="tl">id: a number that identifies this category</p>
+              <p class="tl">name and slug: required text fields</p>
+              <p class="tl">description: optional text (no "!" = can be null)</p>
+              <p class="tl">You can ask for a list of all categories...</p>
+              <p class="tl">...or a single category by its id</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- gRPC -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">gRPC: The Encrypted Radio</h2>
+        <p style="margin-bottom: var(--space-4);"><span class="term" data-definition="Protocol Buffers (protobuf) are Google's way of defining data structures in a compact, language-agnostic format. A .proto file describes the shape of messages, and tools auto-generate code in any language to read/write them.">Protocol Buffers</span> define the message format in a <code>.proto</code> file. It's like an encrypted military radio — humans can't read the transmissions, but the machines on both ends know exactly what's being said. Blazing fast.</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// grpc-server/proto/weather.proto</span>
+<span class="code-keyword">service</span> <span class="code-function">WeatherService</span> {
+  <span class="code-keyword">rpc</span> <span class="code-function">GetTemperature</span>(<span class="code-property">TemperatureRequest</span>)
+    <span class="code-keyword">returns</span> (<span class="code-property">TemperatureResponse</span>);
+}
+
+<span class="code-keyword">message</span> <span class="code-property">TemperatureRequest</span> {
+  <span class="code-keyword">string</span> city <span class="code-operator">=</span> <span class="code-number">1</span>;
+}
+
+<span class="code-keyword">message</span> <span class="code-property">WeatherStation</span> {
+  <span class="code-keyword">string</span> city <span class="code-operator">=</span> <span class="code-number">1</span>;
+  <span class="code-keyword">string</span> temperature <span class="code-operator">=</span> <span class="code-number">2</span>;
+  <span class="code-keyword">string</span> description <span class="code-operator">=</span> <span class="code-number">3</span>;
+}</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This is the "contract" between the backend and gRPC server</p>
+              <p class="tl">The WeatherService offers one operation: GetTemperature</p>
+              <p class="tl">You send a city name, you get back weather data</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">The request message: just a city name as text</p>
+              <p class="tl">The "= 1" is a field number (for binary encoding, not a value)</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">The response: each weather station has city, temperature, and description</p>
+              <p class="tl">These field numbers let gRPC encode data in compact binary format</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data flow animation: Weather request -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Watch a Weather Request Flow</h2>
+        <p style="margin-bottom: var(--space-4);">When you type "Zagreb" and hit search, the request passes through three systems and two protocol translations:</p>
+
+        <div class="flow-animation" id="flow1">
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow1-browser">
+              <div class="flow-actor-icon" style="background: var(--color-actor-1)">FE</div>
+              <span>Browser</span>
+            </div>
+            <div class="flow-actor" id="flow1-backend">
+              <div class="flow-actor-icon" style="background: var(--color-actor-2)">BE</div>
+              <span>Backend</span>
+            </div>
+            <div class="flow-actor" id="flow1-grpc">
+              <div class="flow-actor-icon" style="background: var(--color-actor-5)">gR</div>
+              <span>gRPC Server</span>
+            </div>
+            <div class="flow-actor" id="flow1-dhmz">
+              <div class="flow-actor-icon" style="background: var(--color-actor-4)">DH</div>
+              <span>DHMZ (Weather)</span>
+            </div>
+          </div>
+          <div class="flow-step-label" id="flow1-label">Click "Next Step" to trace the request</div>
+          <div class="flow-controls">
+            <button onclick="flowNext('flow1')">Next Step</button>
+            <button onclick="flowReset('flow1')">Restart</button>
+            <span class="flow-progress" id="flow1-progress">Step 0 / 6</span>
+          </div>
+        </div>
+
+        <div class="callout callout-accent" style="margin-top: var(--space-8)">
+          <div class="callout-icon">&#x1F4A1;</div>
+          <div class="callout-content">
+            <strong class="callout-title">The Proxy Pattern</strong>
+            <p>The backend acts as a <span class="term" data-definition="A proxy is a middleman that forwards requests. Like a concierge at a hotel — you ask them for a taxi, they call the taxi company. You never talk to the taxi company directly.">proxy</span> — translating between REST (which browsers understand) and gRPC (which is faster for server-to-server). This pattern is everywhere in real-world systems: your phone app talks REST to a server, which talks gRPC to internal services.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Protocol Face-Off</h2>
+        <div class="quiz-container" id="m3-quiz">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>You're building a mobile app that needs to display a dashboard. The dashboard shows the user's name, their 3 most recent orders, and a weather widget. You want to fetch all of this in a single request. Which protocol would you choose?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m3q1" data-correct="m3q1-b">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m3q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>REST — make 3 separate GET requests (one for user, one for orders, one for weather)</span></button>
+                <button class="quiz-option" data-value="m3q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>GraphQL — one query that specifies exactly which fields from each data source</span></button>
+                <button class="quiz-option" data-value="m3q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>SOAP — the enterprise standard, most reliable</span></button>
+              </div>
+              <div class="quiz-feedback" id="m3q1-feedback"></div>
+            </div>
+          </div>
+
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>Two backend services in your company need to exchange millions of messages per second. The data structure rarely changes. Human readability is not a concern. Which protocol fits best?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m3q2" data-correct="m3q2-c">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m3q2-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>REST with JSON — universal and well-understood</span></button>
+                <button class="quiz-option" data-value="m3q2-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>GraphQL — flexible queries for any data shape</span></button>
+                <button class="quiz-option" data-value="m3q2-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>gRPC — binary encoding, HTTP/2, built for server-to-server speed</span></button>
+              </div>
+              <div class="quiz-feedback" id="m3q2-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('m3-quiz', {
+            'm3q1': {
+              correct: 'Exactly! GraphQL shines here — one request, you pick exactly the fields you need from multiple data sources. No over-fetching, no multiple round-trips.',
+              incorrect: 'Not quite — GraphQL was designed for exactly this: fetching data from multiple sources in a single, precise query. REST would require 3 separate requests, and SOAP would add unnecessary XML overhead for a mobile app.'
+            },
+            'm3q2': {
+              correct: 'Exactly! gRPC with Protocol Buffers sends compact binary data over HTTP/2, making it ideal for high-throughput server-to-server communication. This is how Google\'s internal services talk to each other.',
+              incorrect: 'Not quite — when you need millions of messages per second between servers, gRPC is the clear winner. Its binary encoding (Protocol Buffers) is much smaller and faster to parse than JSON or XML.'
+            }
+          })">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m3-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 4: DATA & VALIDATION
+     ===================================================================== -->
+<section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Data Guardians</h1>
+      <p class="module-subtitle">Before anything enters the database, it must pass through a gauntlet of validators — like customs officers checking every piece of luggage at a border crossing.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Database: Where Everything Lives</h2>
+        <p style="margin-bottom: var(--space-4);">The project uses <span class="term" data-definition="SQLite is a lightweight database engine that stores everything in a single file (dev.db). No separate server needed — it's embedded right in your application. Perfect for development and small apps.">SQLite</span> through <span class="term" data-definition="Prisma is a modern database toolkit for TypeScript. You define your data model in a schema file, and Prisma generates type-safe functions to query it. Think of it as a translator between your code and the database.">Prisma</span>. Think of the Prisma schema as the blueprint for your filing cabinet — it says "this drawer holds categories, each with a name, slug, and optional description."</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/prisma/schema.prisma</span>
+<span class="code-keyword">model</span> <span class="code-function">Category</span> {
+  <span class="code-property">id</span>          <span class="code-keyword">Int</span>       <span class="code-function">@id</span> <span class="code-function">@default</span>(<span class="code-function">autoincrement</span>())
+  <span class="code-property">name</span>        <span class="code-keyword">String</span>
+  <span class="code-property">slug</span>        <span class="code-keyword">String</span>    <span class="code-function">@unique</span>
+  <span class="code-property">description</span> <span class="code-keyword">String?</span>
+  <span class="code-property">createdAt</span>   <span class="code-keyword">DateTime</span>  <span class="code-function">@default</span>(<span class="code-function">now</span>())
+  <span class="code-property">updatedAt</span>   <span class="code-keyword">DateTime</span>  <span class="code-function">@updatedAt</span>
+}</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This file defines the shape of data in the database</p>
+              <p class="tl">A Category is a "table" — a collection of items with these fields:</p>
+              <p class="tl">id: auto-generated number, unique identifier (like a Social Security number)</p>
+              <p class="tl">name: required text (e.g., "Electronics")</p>
+              <p class="tl">slug: required unique text, URL-friendly (e.g., "electronics")</p>
+              <p class="tl">description: optional text (the "?" means it can be empty)</p>
+              <p class="tl">createdAt: automatically set to "right now" when created</p>
+              <p class="tl">updatedAt: automatically updates every time the record changes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Two Guards: XSD and JSON Schema</h2>
+        <p style="margin-bottom: var(--space-4);">When you upload data, the backend validates it twice — once against an <span class="term" data-definition="XSD (XML Schema Definition) is a blueprint that defines what valid XML looks like — which elements are required, what types they can be, and how they must be structured. It's the XML world's version of a contract.">XSD schema</span> for XML files and once against a <span class="term" data-definition="JSON Schema is a vocabulary for describing the structure of JSON data — what properties are required, what types they must be, and what patterns they must match. Think of it as a template that says 'this is what valid data looks like'.">JSON Schema</span> for JSON files. Like two security checkpoints — one for each language your data might speak.</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">X</div>
+            <h4 class="pattern-title">XSD Validation</h4>
+            <p class="pattern-desc">Checks XML structure: is the root element correct? Are required fields (name, slug) present and non-empty?</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">J</div>
+            <h4 class="pattern-title">JSON Schema Validation</h4>
+            <p class="pattern-desc">Checks JSON format: are types correct? Does the slug match the regex pattern <code>^[a-z0-9]+(?:-[a-z0-9]+)*$</code>?</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Validation Code</h2>
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/utils/validateXml.ts</span>
+<span class="code-keyword">function</span> <span class="code-function">validateCategoryNode</span>(el, errors) {
+  <span class="code-keyword">const</span> nameEls <span class="code-operator">=</span> el.<span class="code-function">getElementsByTagName</span>(<span class="code-string">"name"</span>);
+  <span class="code-keyword">if</span> (nameEls.length <span class="code-operator">===</span> <span class="code-number">0</span>) {
+    errors.<span class="code-function">push</span>(<span class="code-string">"Missing 'name'"</span>);
+  } <span class="code-keyword">else if</span> (<span class="code-operator">!</span>nameEls[<span class="code-number">0</span>]?.textContent?.<span class="code-function">trim</span>()) {
+    errors.<span class="code-function">push</span>(<span class="code-string">"'name' must not be empty"</span>);
+  }
+}</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This function checks one category in the XML</p>
+              <p class="tl">Look for any &lt;name&gt; tags inside this category element</p>
+              <p class="tl">If there are zero name tags, that's an error — name is required</p>
+              <p class="tl">Add "Missing 'name'" to the list of problems</p>
+              <p class="tl">If the name exists but is empty or just spaces, that's also bad</p>
+              <p class="tl">Add a different error: name can't be blank</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">&#x1F4A1;</div>
+          <div class="callout-content">
+            <strong class="callout-title">Validate at the Boundary</strong>
+            <p>Notice how validation happens at the <em>entry point</em> — where external data enters the system. This is a universal principle: trust nothing that comes from outside. Validate input once, at the border, then trust it internally. Like checking passports at the airport, not at every shop inside the terminal.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Test Your Validator Instincts</h2>
+        <div class="quiz-container" id="m4-quiz">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>A user uploads this XML: <code>&lt;category&gt;&lt;name&gt;Tech&lt;/name&gt;&lt;/category&gt;</code>. The upload fails. Why?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m4q1" data-correct="m4q1-b">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m4q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The root element should be &lt;categories&gt;, not &lt;category&gt;</span></button>
+                <button class="quiz-option" data-value="m4q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's missing the required &lt;slug&gt; element</span></button>
+                <button class="quiz-option" data-value="m4q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>XML files need a namespace declaration</span></button>
+              </div>
+              <div class="quiz-feedback" id="m4q1-feedback"></div>
+            </div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('m4-quiz', {
+            'm4q1': {
+              correct: 'Exactly! The validator requires both &lt;name&gt; and &lt;slug&gt; elements. The XML has a name but no slug — so validateCategoryNode would push \"Missing slug\" to the errors array.',
+              incorrect: 'Not quite — look at the validation code: it checks for both &lt;name&gt; and &lt;slug&gt; elements. This XML has a name but no slug, which is why it fails. The root element &lt;category&gt; is actually valid (the code accepts both &lt;category&gt; and &lt;categories&gt;).'
+            }
+          })">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m4-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 5: THE SECURITY GATE (JWT AUTH)
+     ===================================================================== -->
+<section class="module" id="module-5" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The Security Gate</h1>
+      <p class="module-subtitle">How the app knows who you are, what you're allowed to do, and how it keeps your session alive — all without storing anything on the server.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">JWT: Your Digital Wristband</h2>
+        <p style="margin-bottom: var(--space-4);">Imagine a music festival. At the gate, you show your ticket and get a wristband. The wristband has your name and access level encoded into it. Every stage checks your wristband — but none of them need to call the box office. The wristband <em>is</em> the proof.</p>
+        <p style="margin-bottom: var(--space-4);">That's exactly how <span class="term" data-definition="JWT (JSON Web Token, pronounced 'jot') is a compact, URL-safe token that contains encoded claims about a user — their ID, role, and when the token expires. The server signs it with a secret key so it can verify the token is genuine without looking anything up in a database.">JWT</span> works. The server creates a signed token with your identity inside. Every request sends this token, and the server verifies the signature — no database lookup needed.</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/routes/auth.ts</span>
+<span class="code-keyword">const</span> payload <span class="code-operator">=</span> { userId, email, role };
+<span class="code-keyword">const</span> accessToken <span class="code-operator">=</span> jwt.<span class="code-function">sign</span>(
+  payload,
+  JWT_SECRET,
+  { <span class="code-property">expiresIn</span>: <span class="code-string">"15m"</span> }
+);
+<span class="code-keyword">const</span> refreshToken <span class="code-operator">=</span> jwt.<span class="code-function">sign</span>(
+  payload,
+  JWT_REFRESH_SECRET,
+  { <span class="code-property">expiresIn</span>: <span class="code-string">"7d"</span> }
+);</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">After verifying your password, the server creates two tokens:</p>
+              <p class="tl">The "payload" — your identity data baked into the token</p>
+              <p class="tl">Access token: your short-lived wristband, good for 15 minutes</p>
+              <p class="tl">It's signed with a secret key only the server knows</p>
+              <p class="tl">15 minutes keeps it safe — if someone steals it, it expires fast</p>
+              <p class="tl">Refresh token: your "re-entry pass," good for 7 days</p>
+              <p class="tl">Signed with a different secret (extra security layer)</p>
+              <p class="tl">When the access token expires, use this to get a new one without logging in again</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Two Tokens, Two Jobs</h2>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">A</div>
+            <h4 class="pattern-title">Access Token</h4>
+            <p class="pattern-desc">Stored in <span class="term" data-definition="'In memory' means stored in a JavaScript variable that only exists while the page is open. Refresh the page? It's gone. This is intentional — it keeps the token out of places where attackers could find it.">memory</span> (a JavaScript variable). Lives 15 minutes. Sent with every request as a "Bearer" header. If stolen, damage is limited to 15 min.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-5)">
+            <div class="pattern-icon" style="background: var(--color-actor-5)">R</div>
+            <h4 class="pattern-title">Refresh Token</h4>
+            <p class="pattern-desc">Stored in <span class="term" data-definition="localStorage is a simple key-value storage in the browser that persists even after you close the tab. It's like a sticky note that stays on your monitor — convenient but visible to anyone with access to the computer.">localStorage</span>. Lives 7 days. Only used to get a new access token. Never sent with regular requests — reduces exposure.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- GROUP CHAT: Token refresh flow -->
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Silent Refresh Dance</h2>
+        <p style="margin-bottom: var(--space-4);">What happens when your access token expires? The app handles it silently — you never notice:</p>
+
+        <div class="chat-window" id="chat2">
+          <div class="chat-header">token-refresh.log</div>
+          <div class="chat-messages" id="chat2-messages">
+            <div class="chat-message" data-msg="0" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend (getToken)</span>
+                <p>User wants to fetch categories. Let me check the access token... it expires in 45 seconds. That's within the 60-second buffer. Better refresh.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend (getToken)</span>
+                <p>Found a refresh token in localStorage. Sending it to /auth/refresh...</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="be" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">BE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Backend (/auth/refresh)</span>
+                <p>Got the refresh token. Let me verify it with JWT_REFRESH_SECRET... signature valid, not expired. Here's a fresh access token, good for another 15 minutes.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="fe" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">FE</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Frontend (Zustand Store)</span>
+                <p>New token received. Updating my state. The user didn't notice a thing. Now making the original categories request with the fresh token.</p>
+              </div>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat2-typing" style="display:none">
+            <div class="chat-avatar" id="chat2-typing-avatar" style="background: var(--color-text-muted)">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <button onclick="playChatNext('chat2')">Next Message</button>
+            <button onclick="playChatAll('chat2')">Play All</button>
+            <button onclick="resetChat('chat2')">Replay</button>
+            <span class="chat-progress" id="chat2-progress">0 / 4 messages</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Middleware Guard</h2>
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/middleware/auth.ts</span>
+<span class="code-keyword">export function</span> <span class="code-function">authenticate</span>(req, res, next) {
+  <span class="code-keyword">const</span> authHeader <span class="code-operator">=</span> req.headers.authorization;
+  <span class="code-keyword">if</span> (<span class="code-operator">!</span>authHeader?.<span class="code-function">startsWith</span>(<span class="code-string">"Bearer "</span>))
+    <span class="code-keyword">return</span> res.<span class="code-function">status</span>(<span class="code-number">401</span>).<span class="code-function">json</span>({...});
+  <span class="code-keyword">const</span> token <span class="code-operator">=</span> authHeader.<span class="code-function">slice</span>(<span class="code-number">7</span>);
+  <span class="code-keyword">const</span> decoded <span class="code-operator">=</span> jwt.<span class="code-function">verify</span>(token, JWT_SECRET);
+  req.user <span class="code-operator">=</span> decoded;
+  <span class="code-function">next</span>();
+}</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This function runs before protected routes — like a bouncer</p>
+              <p class="tl">Grab the "Authorization" header from the request</p>
+              <p class="tl">If there's no header, or it doesn't start with "Bearer " — reject (401 Unauthorized)</p>
+              <p class="tl">Extract just the token part (skip the "Bearer " prefix, 7 characters)</p>
+              <p class="tl">Verify the signature using the server's secret key — this proves it's genuine</p>
+              <p class="tl">Attach the decoded user info (id, email, role) to the request object</p>
+              <p class="tl">Call next() — "this person checks out, let them through to the route"</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">&#x1F4A1;</div>
+          <div class="callout-content">
+            <strong class="callout-title">Middleware: The Assembly Line</strong>
+            <p><span class="term" data-definition="Middleware is a function that runs between receiving a request and sending a response — like checkpoints on an assembly line. Each middleware can inspect, modify, or reject the request before passing it along with next().">Middleware</span> is one of the most powerful patterns in web development. Each request passes through a chain of functions — authentication, permission checking, logging — before reaching the actual route handler. If any middleware says "stop," the chain breaks and the request is rejected.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Security Check</h2>
+        <div class="quiz-container" id="m5-quiz">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>A user with role "read-only" tries to DELETE a category. The request has a valid JWT. What happens?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m5q1" data-correct="m5q1-c">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m5q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The delete succeeds — the JWT is valid, so they're authenticated</span></button>
+                <button class="quiz-option" data-value="m5q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>401 Unauthorized — the authenticate middleware rejects them</span></button>
+                <button class="quiz-option" data-value="m5q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>403 Forbidden — authenticate passes, but requireWriteAccess blocks them because their role isn't "full-access"</span></button>
+              </div>
+              <div class="quiz-feedback" id="m5q1-feedback"></div>
+            </div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('m5-quiz', {
+            'm5q1': {
+              correct: 'Exactly! Authentication (who you are) passes, but authorization (what you\'re allowed to do) fails. The middleware chain is: authenticate &#x2192; requireWriteAccess &#x2192; route. The second middleware checks role === \"full-access\" and returns 403 for read-only users.',
+              incorrect: 'Not quite — there are TWO middleware steps: authenticate (checks identity, returns 401 if invalid) and requireWriteAccess (checks role, returns 403 if not \"full-access\"). The JWT is valid so authenticate passes, but the role check blocks the delete.'
+            }
+          })">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m5-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 6: CLEVER PATTERNS
+     ===================================================================== -->
+<section class="module" id="module-6" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">Clever Patterns</h1>
+      <p class="module-subtitle">The engineering tricks hidden in this codebase — patterns you can request from AI tools by name once you know they exist.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Patterns Worth Knowing</h2>
+        <p style="margin-bottom: var(--space-4);">Think of these as power tools in your workshop. You don't need to build them from scratch — you just need to know they exist, what they're called, and when to reach for them. That's enough to tell an AI "add the proxy pattern here" and get exactly what you want.</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">P</div>
+            <h4 class="pattern-title">Proxy Pattern</h4>
+            <p class="pattern-desc">Backend translates between REST and gRPC. Browser says "give me weather" in REST; backend translates to gRPC and forwards to the specialist server.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">T</div>
+            <h4 class="pattern-title">Two-Token Auth</h4>
+            <p class="pattern-desc">Short-lived access token (15min) + long-lived refresh token (7d). Balances security with convenience — like a day pass and a season ticket.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">S</div>
+            <h4 class="pattern-title">State Separation</h4>
+            <p class="pattern-desc"><span class="term" data-definition="Zustand is a tiny, fast state management library for React. Unlike Redux, it doesn't need boilerplate — just a function that returns your state and actions. It stores data in memory (resets on page refresh).">Zustand</span> for auth state (transient, in-memory). <span class="term" data-definition="TanStack Query (formerly React Query) manages server data — it handles fetching, caching, refetching, and synchronizing data between your UI and the server. It answers the question 'is my data stale?' automatically.">TanStack Query</span> for server data (cached, auto-refreshing). localStorage for the refresh token (persistent).</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">A</div>
+            <h4 class="pattern-title">API Source Toggle</h4>
+            <p class="pattern-desc">A settings flag (USE_CUSTOM_API) switches between local Prisma DB and external Strapi. Same routes, different data source — the adapter pattern in action.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">XPath: The XML Search Engine</h2>
+        <p style="margin-bottom: var(--space-4);">The SOAP service uses <span class="term" data-definition="XPath is a query language for navigating XML documents. It uses path expressions (like file system paths) to select nodes. '//category' means 'find all category elements anywhere in the document'. It's like SQL but for XML.">XPath</span> to search through XML — it's like SQL but for XML documents. Watch how a case-insensitive search is built:</p>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// backend/src/soap/categoriesService.ts</span>
+<span class="code-keyword">const</span> xpathQuery <span class="code-operator">=</span> <span class="code-string">`//category[
+  contains(
+    translate(name, 'ABC...Z', 'abc...z'),
+    '${</span>term<span class="code-string">}'
+  ) or contains(
+    translate(description, 'ABC...Z', 'abc...z'),
+    '${</span>term<span class="code-string">}'
+  )
+]`</span>;
+<span class="code-keyword">const</span> nodes <span class="code-operator">=</span> xpath.<span class="code-function">select</span>(xpathQuery, doc);</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This file handles SOAP search operations</p>
+              <p class="tl">Find all &lt;category&gt; elements anywhere in the document (//) where...</p>
+              <p class="tl">...the name, converted to lowercase (translate does letter-by-letter swapping)...</p>
+              <p class="tl">...contains the search term</p>
+              <p class="tl">OR the description, also lowercased, contains the term</p>
+              <p class="tl">(XPath has no toLower() function, so translate() is the workaround)</p>
+              <p class="tl">Run the XPath query against the parsed XML document and get matching nodes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Frontend: The Auto-Refresh Hook</h2>
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-comment">// frontend/src/store/authStore.ts</span>
+<span class="code-function">getToken</span>: <span class="code-keyword">async</span> () <span class="code-operator">=></span> {
+  <span class="code-keyword">const</span> { accessToken } <span class="code-operator">=</span> <span class="code-function">get</span>();
+  <span class="code-keyword">if</span> (accessToken) {
+    <span class="code-keyword">const</span> decoded <span class="code-operator">=</span> <span class="code-function">decodeJwt</span>(accessToken);
+    <span class="code-keyword">if</span> (decoded.exp <span class="code-operator">*</span> <span class="code-number">1000</span> <span class="code-operator">></span> Date.<span class="code-function">now</span>() <span class="code-operator">+</span> <span class="code-number">60000</span>)
+      <span class="code-keyword">return</span> accessToken;
+  }
+  <span class="code-keyword">const</span> rt <span class="code-operator">=</span> localStorage.<span class="code-function">getItem</span>(<span class="code-string">"refreshToken"</span>);
+  <span class="code-keyword">const</span> data <span class="code-operator">=</span> <span class="code-keyword">await</span> <span class="code-function">refreshApi</span>(rt);
+  <span class="code-function">_setAuth</span>(data.accessToken, ...);
+  <span class="code-keyword">return</span> data.accessToken;
+}</code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This function is called before every API request</p>
+              <p class="tl">Grab the current access token from the Zustand store</p>
+              <p class="tl">If we have one...</p>
+              <p class="tl">Decode it and check the expiration timestamp</p>
+              <p class="tl">If it's valid for more than 60 seconds, it's still good — use it</p>
+              <p class="tl">(the 60-second buffer prevents using a token that's about to expire)</p>
+              <p class="tl">Otherwise, grab the refresh token from localStorage</p>
+              <p class="tl">Call the server's /auth/refresh endpoint to get a new access token</p>
+              <p class="tl">Update the Zustand store with the fresh token</p>
+              <p class="tl">Return it — the original API call never knew anything happened</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Pattern Recognition</h2>
+        <div class="quiz-container" id="m6-quiz">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>You're building an app that needs to display data from a payment processor's API. The payment API only supports XML-RPC, but your React frontend can only consume JSON. How would you handle this?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m6q1" data-correct="m6q1-a">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m6q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Use the proxy pattern: build a backend route that calls the XML-RPC API, translates the response to JSON, and serves it to the frontend</span></button>
+                <button class="quiz-option" data-value="m6q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Add an XML parser to the React frontend and parse the XML-RPC response in the browser</span></button>
+                <button class="quiz-option" data-value="m6q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Ask the payment processor to add a JSON API</span></button>
+              </div>
+              <div class="quiz-feedback" id="m6q1-feedback"></div>
+            </div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('m6-quiz', {
+            'm6q1': {
+              correct: 'Exactly! This is the same proxy pattern used in the IIS project — the backend acts as a translator between protocols. Your frontend stays clean (just JSON), and the complexity is isolated in one backend route.',
+              incorrect: 'Think about how the weather feature works in this project — the browser can\'t speak gRPC, so the backend acts as a proxy, translating between REST and gRPC. Same principle applies here: put the translation logic in a backend route.'
+            }
+          })">Check Answer</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m6-quiz')">Try Again</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODULE 7: THE BIG PICTURE
+     ===================================================================== -->
+<section class="module" id="module-7" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">07</span>
+      <h1 class="module-title">The Big Picture</h1>
+      <p class="module-subtitle">Zoom out and see the full architecture — how every piece connects, and where to look when something breaks.</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Full Architecture</h2>
+        <p style="margin-bottom: var(--space-4);">Click any component to see what it does:</p>
+
+        <div class="arch-diagram" id="arch-main">
+          <div class="arch-zones">
+            <div class="arch-zone" style="border-color: var(--color-actor-1)">
+              <h4 class="arch-zone-label" style="color: var(--color-actor-1)">Browser (port 5173)</h4>
+              <div class="arch-component" data-desc="React 19 app with TypeScript. Pages for each task (upload, SOAP search, validation, weather, CRUD). Uses Zustand for auth, TanStack Query for server data." onclick="showArchDesc(this)"><span>React SPA</span></div>
+              <div class="arch-component" data-desc="Zustand store manages JWT tokens in memory. TanStack Query caches server responses. localStorage holds the refresh token for persistence across page reloads." onclick="showArchDesc(this)"><span>State Management</span></div>
+              <div class="arch-component" data-desc="API client functions in frontend/src/api/ — auth.ts, categories.ts, soap.ts, settings.ts. Each wraps fetch() calls with proper headers and error handling." onclick="showArchDesc(this)"><span>API Clients</span></div>
+            </div>
+
+            <div class="arch-arrow">&#x2192;</div>
+
+            <div class="arch-zone" style="border-color: var(--color-actor-2)">
+              <h4 class="arch-zone-label" style="color: var(--color-actor-2)">Backend (port 3001)</h4>
+              <div class="arch-component" data-desc="REST routes at /api/categories (CRUD), /api/upload (file validation), /api/weather (gRPC proxy), /auth/* (JWT login/refresh). Protected by authenticate + requireWriteAccess middleware." onclick="showArchDesc(this)"><span>REST Routes</span></div>
+              <div class="arch-component" data-desc="Apollo Server at /graphql. Same category data, but clients choose exactly which fields they want. Auth via JWT in context. Mutations enforce 'full-access' role." onclick="showArchDesc(this)"><span>GraphQL</span></div>
+              <div class="arch-component" data-desc="node-soap at /soap. Reads categories.xml from disk, validates against XSD, then uses XPath for case-insensitive search. Returns SOAP XML response." onclick="showArchDesc(this)"><span>SOAP Service</span></div>
+              <div class="arch-component" data-desc="Prisma ORM with SQLite. Two tables: Category (id, name, slug, description) and User (id, email, password, role). Seed data pre-loads test users and categories." onclick="showArchDesc(this)"><span>Prisma + SQLite</span></div>
+            </div>
+
+            <div class="arch-arrow">&#x2192;</div>
+
+            <div class="arch-zone" style="border-color: var(--color-actor-5)">
+              <h4 class="arch-zone-label" style="color: var(--color-actor-5)">gRPC (port 50051)</h4>
+              <div class="arch-component" data-desc="Standalone Node.js server that implements WeatherService.GetTemperature. Fetches live XML from DHMZ (Croatia's meteorological service), parses it, filters by city, and returns WeatherStation array via gRPC." onclick="showArchDesc(this)"><span>Weather Service</span></div>
+            </div>
+          </div>
+          <div class="arch-description" id="arch-main-desc">Click any component to learn what it does</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">When Things Break: Where to Look</h2>
+        <p style="margin-bottom: var(--space-4);">Debugging is like being a detective. The trick is knowing which room to investigate based on the symptom. Here's your cheat sheet:</p>
+
+        <div class="badge-list stagger-children">
+          <div class="badge-item animate-in">
+            <code class="badge-code">401 Unauthorized</code>
+            <span>"Token expired or missing." Check: Is getToken() returning a valid token? Is the refresh token in localStorage? Look at authStore.ts and middleware/auth.ts.</span>
+          </div>
+          <div class="badge-item animate-in">
+            <code class="badge-code">403 Forbidden</code>
+            <span>"Valid token, wrong role." Check: The user's role in the database. Look at middleware/auth.ts requireWriteAccess().</span>
+          </div>
+          <div class="badge-item animate-in">
+            <code class="badge-code">SOAP returns empty</code>
+            <span>"XPath found nothing." Check: Does categories.xml exist? Was it generated? Is the search term matching? Look at soap/categoriesService.ts.</span>
+          </div>
+          <div class="badge-item animate-in">
+            <code class="badge-code">Weather timeout</code>
+            <span>"gRPC server not running or DHMZ down." Check: Is port 50051 listening? Can you reach vrijeme.hr? Look at grpc-server/src/server.ts.</span>
+          </div>
+          <div class="badge-item animate-in">
+            <code class="badge-code">Upload validation fails</code>
+            <span>"XML or JSON doesn't match schema." Check: Does XML have &lt;name&gt; AND &lt;slug&gt;? Does JSON slug match the regex? Look at routes/upload.ts and utils/validateXml.ts.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">What You've Learned</h2>
+        <p style="margin-bottom: var(--space-4);">You now have the vocabulary and mental model to:</p>
+
+        <div class="step-cards stagger-children">
+          <div class="step-card animate-in" style="border-left-color: var(--color-actor-1)">
+            <div class="step-num" style="background: var(--color-actor-1)">1</div>
+            <div class="step-body">
+              <strong>Choose the right protocol</strong>
+              <p>"Use REST for CRUD, GraphQL for flexible queries, SOAP for enterprise integration, gRPC for server-to-server speed"</p>
+            </div>
+          </div>
+          <div class="step-card animate-in" style="border-left-color: var(--color-actor-2)">
+            <div class="step-num" style="background: var(--color-actor-2)">2</div>
+            <div class="step-body">
+              <strong>Direct AI to the right file</strong>
+              <p>"Put the route in backend/src/routes/, the schema in graphql/schema.ts, the database model in prisma/schema.prisma"</p>
+            </div>
+          </div>
+          <div class="step-card animate-in" style="border-left-color: var(--color-actor-3)">
+            <div class="step-num" style="background: var(--color-actor-3)">3</div>
+            <div class="step-body">
+              <strong>Request patterns by name</strong>
+              <p>"Add JWT two-token auth," "use the proxy pattern," "add middleware for authorization," "validate input at the boundary"</p>
+            </div>
+          </div>
+          <div class="step-card animate-in" style="border-left-color: var(--color-actor-5)">
+            <div class="step-num" style="background: var(--color-actor-5)">4</div>
+            <div class="step-body">
+              <strong>Debug by symptom</strong>
+              <p>401 = auth, 403 = permissions, empty = data/XPath, timeout = external service</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Final Challenge</h2>
+        <div class="quiz-container" id="m7-quiz">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>You want to add a new feature: "search categories by name using GraphQL." The current GraphQL schema only has <code>categories</code> (returns all) and <code>category(id)</code> (returns one by ID). What files would you need to change?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m7q1" data-correct="m7q1-c">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m7q1-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Only backend/src/graphql/resolvers.ts — add the search logic there</span></button>
+                <button class="quiz-option" data-value="m7q1-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Only backend/src/graphql/schema.ts — add a new query type</span></button>
+                <button class="quiz-option" data-value="m7q1-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Both schema.ts (add the query definition) AND resolvers.ts (add the implementation) — then update the frontend to call it</span></button>
+              </div>
+              <div class="quiz-feedback" id="m7q1-feedback"></div>
+            </div>
+          </div>
+
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>A colleague says: "Let's put the XML validation logic in the React frontend so we don't need a server call." Is this a good idea?</p>
+            </div>
+            <div class="quiz-question-block" data-question="m7q2" data-correct="m7q2-b">
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="m7q2-a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — it would be faster since there's no network round-trip</span></button>
+                <button class="quiz-option" data-value="m7q2-b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>No — validation should happen on the server (the boundary), because client-side validation can be bypassed</span></button>
+                <button class="quiz-option" data-value="m7q2-c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — modern browsers can parse XML natively</span></button>
+              </div>
+              <div class="quiz-feedback" id="m7q2-feedback"></div>
+            </div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('m7-quiz', {
+            'm7q1': {
+              correct: 'Exactly! GraphQL requires changes in two places: the schema (what queries are available) and the resolvers (what they do). Then the frontend needs to send the new query. You\'d tell AI: \"Add a searchCategories(term: String!) query to the GraphQL schema and resolver.\"',
+              incorrect: 'GraphQL has a strict contract: the schema defines what queries exist, and the resolvers implement them. You need both. Adding logic to resolvers without updating the schema means clients can\'t call it. Updating the schema without a resolver means it would error.'
+            },
+            'm7q2': {
+              correct: 'Exactly! This is the \"validate at the boundary\" principle from Module 4. Client-side validation improves UX (fast feedback), but NEVER replaces server-side validation. Anyone can bypass the browser and send raw HTTP requests to your server — so the server must always be the final authority.',
+              incorrect: 'Think about what you learned in Module 4: \"Validate at the boundary.\" The browser IS the user — it can\'t be trusted. Someone could use a tool like curl to send data directly to your server, skipping all frontend checks. Server-side validation is non-negotiable.'
+            }
+          })">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('m7-quiz')">Try Again</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in" style="text-align: center; padding: var(--space-16) 0;">
+        <h2 class="screen-heading" style="font-size: var(--text-3xl);">Course Complete</h2>
+        <p style="font-size: var(--text-lg); color: var(--color-text-secondary); max-width: 500px; margin: var(--space-4) auto;">You now understand how a real enterprise integration system works — from protocols to patterns to debugging. Go build something amazing.</p>
+        <div style="margin-top: var(--space-8); font-size: var(--text-4xl);">&#x1F680;</div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ========== JAVASCRIPT ========== -->
+<script>
+(function() {
+  'use strict';
+
+  // ========== SCROLL ANIMATIONS ==========
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+
+  document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+
+  // Stagger children
+  document.querySelectorAll('.stagger-children').forEach(parent => {
+    Array.from(parent.children).forEach((child, i) => {
+      child.style.setProperty('--stagger-index', i);
+    });
+  });
+
+  // ========== PROGRESS BAR ==========
+  const progressBar = document.getElementById('progress-bar');
+  function updateProgress() {
+    const scrollTop = window.scrollY;
+    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+    progressBar.style.width = progress + '%';
+  }
+  window.addEventListener('scroll', () => requestAnimationFrame(updateProgress), { passive: true });
+
+  // ========== NAV DOTS ==========
+  const dots = document.querySelectorAll('.nav-dot');
+  const modules = document.querySelectorAll('.module');
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const target = document.getElementById(dot.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const moduleObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        dots.forEach(d => d.classList.remove('active'));
+        const activeDot = document.querySelector(`[data-target="${id}"]`);
+        if (activeDot) {
+          activeDot.classList.add('active');
+          activeDot.classList.add('visited');
+        }
+      }
+    });
+  }, { threshold: 0.3 });
+
+  modules.forEach(m => moduleObserver.observe(m));
+
+  // ========== KEYBOARD NAV ==========
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    const current = Array.from(modules).findIndex(m => {
+      const rect = m.getBoundingClientRect();
+      return rect.top >= -100 && rect.top < window.innerHeight / 2;
+    });
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      if (current < modules.length - 1) { modules[current + 1].scrollIntoView({ behavior: 'smooth' }); e.preventDefault(); }
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      if (current > 0) { modules[current - 1].scrollIntoView({ behavior: 'smooth' }); e.preventDefault(); }
+    }
+  });
+
+  // ========== QUIZ SYSTEM ==========
+  window.selectOption = function(btn) {
+    const block = btn.closest('.quiz-question-block');
+    block.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+    btn.classList.add('selected');
+  };
+
+  window.checkQuiz = function(containerId, explanations) {
+    const container = document.getElementById(containerId);
+    const questions = container.querySelectorAll('.quiz-question-block');
+
+    questions.forEach(q => {
+      const qId = q.dataset.question;
+      const selected = q.querySelector('.quiz-option.selected');
+      const feedback = q.querySelector('.quiz-feedback');
+      const correctValue = q.dataset.correct;
+      const expl = explanations[qId];
+
+      if (!selected) {
+        feedback.textContent = 'Pick an answer first!';
+        feedback.className = 'quiz-feedback show warning';
+        return;
+      }
+
+      if (selected.dataset.value === correctValue) {
+        selected.classList.add('correct');
+        feedback.innerHTML = '<strong>Exactly!</strong> ' + expl.correct;
+        feedback.className = 'quiz-feedback show success';
+      } else {
+        selected.classList.add('incorrect');
+        const correctBtn = q.querySelector(`[data-value="${correctValue}"]`);
+        if (correctBtn) correctBtn.classList.add('correct');
+        feedback.innerHTML = '<strong>Not quite.</strong> ' + expl.incorrect;
+        feedback.className = 'quiz-feedback show error';
+      }
+      q.querySelectorAll('.quiz-option').forEach(o => o.disabled = true);
+    });
+  };
+
+  window.resetQuiz = function(containerId) {
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('.quiz-option').forEach(o => {
+      o.classList.remove('selected', 'correct', 'incorrect');
+      o.disabled = false;
+    });
+    container.querySelectorAll('.quiz-feedback').forEach(f => {
+      f.className = 'quiz-feedback';
+      f.innerHTML = '';
+    });
+  };
+
+  // ========== CHAT SYSTEM ==========
+  const chatState = {};
+
+  function getChatActors(chatId) {
+    if (chatId === 'chat1') return {
+      fe: { initials: 'FE', color: 'var(--color-actor-1)' },
+      be: { initials: 'BE', color: 'var(--color-actor-2)' },
+      grpc: { initials: 'gR', color: 'var(--color-actor-5)' }
+    };
+    if (chatId === 'chat2') return {
+      fe: { initials: 'FE', color: 'var(--color-actor-1)' },
+      be: { initials: 'BE', color: 'var(--color-actor-2)' }
+    };
+    return {};
+  }
+
+  window.playChatNext = function(chatId) {
+    if (!chatState[chatId]) chatState[chatId] = { index: 0 };
+    const state = chatState[chatId];
+    const messages = document.querySelectorAll(`#${chatId}-messages .chat-message`);
+    const actors = getChatActors(chatId);
+
+    if (state.index >= messages.length) return;
+    const msg = messages[state.index];
+    const sender = msg.dataset.sender;
+
+    const typing = document.getElementById(`${chatId}-typing`);
+    const avatar = document.getElementById(`${chatId}-typing-avatar`);
+    if (actors[sender]) {
+      avatar.textContent = actors[sender].initials;
+      avatar.style.background = actors[sender].color;
+    }
+    typing.style.display = 'flex';
+
+    setTimeout(() => {
+      typing.style.display = 'none';
+      msg.style.display = 'flex';
+      msg.style.animation = 'fadeSlideUp 0.3s var(--ease-out)';
+      state.index++;
+      document.getElementById(`${chatId}-progress`).textContent = state.index + ' / ' + messages.length + ' messages';
+      const container = document.getElementById(`${chatId}-messages`);
+      container.scrollTop = container.scrollHeight;
+    }, 700);
+  };
+
+  window.playChatAll = function(chatId) {
+    const interval = setInterval(() => {
+      if (!chatState[chatId]) chatState[chatId] = { index: 0 };
+      const messages = document.querySelectorAll(`#${chatId}-messages .chat-message`);
+      if (chatState[chatId].index >= messages.length) { clearInterval(interval); return; }
+      playChatNext(chatId);
+    }, 1100);
+  };
+
+  window.resetChat = function(chatId) {
+    chatState[chatId] = { index: 0 };
+    document.querySelectorAll(`#${chatId}-messages .chat-message`).forEach(m => {
+      m.style.display = 'none';
+    });
+    document.getElementById(`${chatId}-typing`).style.display = 'none';
+    const messages = document.querySelectorAll(`#${chatId}-messages .chat-message`);
+    document.getElementById(`${chatId}-progress`).textContent = '0 / ' + messages.length + ' messages';
+  };
+
+  // ========== FLOW ANIMATION ==========
+  const flowDefs = {
+    flow1: {
+      steps: [
+        { highlight: 'flow1-browser', label: 'You type "Zagreb" in the city input and click Search.' },
+        { highlight: 'flow1-browser', label: 'Frontend sends GET /api/weather?city=Zagreb to the backend (REST, with JWT token).' },
+        { highlight: 'flow1-backend', label: 'Backend receives the REST request. It loads weather.proto and creates a gRPC client pointing to port 50051.' },
+        { highlight: 'flow1-grpc', label: 'Backend calls gRPC GetTemperature({ city: "Zagreb" }). The gRPC server receives the binary request.' },
+        { highlight: 'flow1-dhmz', label: 'gRPC server fetches live XML from https://vrijeme.hr/hrvatska_n.xml — Croatia\'s weather service.' },
+        { highlight: 'flow1-grpc', label: 'Parses the XML, filters stations matching "Zagreb", and returns WeatherStation[] via gRPC to backend.' },
+        { highlight: 'flow1-backend', label: 'Backend converts gRPC response to JSON and sends it to the browser.' },
+        { highlight: 'flow1-browser', label: 'Frontend renders weather cards with color-coded temperatures. The request crossed 4 systems and 3 protocol translations!' }
+      ],
+      index: 0
+    }
+  };
+
+  window.flowNext = function(flowId) {
+    const flow = flowDefs[flowId];
+    if (flow.index >= flow.steps.length) return;
+    const step = flow.steps[flow.index];
+
+    document.querySelectorAll(`#${flowId} .flow-actor`).forEach(a => a.classList.remove('active'));
+    const actor = document.getElementById(step.highlight);
+    if (actor) actor.classList.add('active');
+    document.getElementById(`${flowId}-label`).textContent = step.label;
+    flow.index++;
+    document.getElementById(`${flowId}-progress`).textContent = 'Step ' + flow.index + ' / ' + flow.steps.length;
+  };
+
+  window.flowReset = function(flowId) {
+    const flow = flowDefs[flowId];
+    flow.index = 0;
+    document.querySelectorAll(`#${flowId} .flow-actor`).forEach(a => a.classList.remove('active'));
+    document.getElementById(`${flowId}-label`).textContent = 'Click "Next Step" to trace the request';
+    document.getElementById(`${flowId}-progress`).textContent = 'Step 0 / ' + flow.steps.length;
+  };
+
+  // ========== ARCHITECTURE DIAGRAM ==========
+  window.showArchDesc = function(el) {
+    const diagram = el.closest('.arch-diagram');
+    const desc = diagram.querySelector('.arch-description');
+    desc.textContent = el.dataset.desc;
+    diagram.querySelectorAll('.arch-component').forEach(c => c.style.borderColor = '');
+    el.style.borderColor = 'var(--color-accent)';
+  };
+
+  // ========== GLOSSARY TOOLTIPS ==========
+  let activeTooltip = null;
+
+  function positionTooltip(term, tip) {
+    const rect = term.getBoundingClientRect();
+    const tipWidth = Math.min(320, window.innerWidth * 0.8);
+    let left = rect.left + rect.width / 2 - tipWidth / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tipWidth - 8));
+    tip.style.left = left + 'px';
+    tip.style.width = tipWidth + 'px';
+
+    document.body.appendChild(tip);
+    const tipHeight = tip.offsetHeight;
+    if (rect.top - tipHeight - 8 < 0) {
+      tip.style.top = (rect.bottom + 8) + 'px';
+      tip.classList.add('flip');
+    } else {
+      tip.style.top = (rect.top - tipHeight - 8) + 'px';
+      tip.classList.remove('flip');
+    }
+  }
+
+  document.querySelectorAll('.term').forEach(term => {
+    const tip = document.createElement('span');
+    tip.className = 'term-tooltip';
+    tip.textContent = term.dataset.definition;
+
+    term.addEventListener('mouseenter', () => {
+      if (activeTooltip && activeTooltip !== tip) { activeTooltip.classList.remove('visible'); activeTooltip.remove(); }
+      positionTooltip(term, tip);
+      requestAnimationFrame(() => tip.classList.add('visible'));
+      activeTooltip = tip;
+    });
+
+    term.addEventListener('mouseleave', () => {
+      tip.classList.remove('visible');
+      setTimeout(() => { if (!tip.classList.contains('visible')) tip.remove(); }, 150);
+      activeTooltip = null;
+    });
+
+    term.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeTooltip && activeTooltip !== tip) { activeTooltip.classList.remove('visible'); activeTooltip.remove(); }
+      if (tip.classList.contains('visible')) { tip.classList.remove('visible'); tip.remove(); activeTooltip = null; }
+      else { positionTooltip(term, tip); requestAnimationFrame(() => tip.classList.add('visible')); activeTooltip = tip; }
+    });
+  });
+
+  document.addEventListener('click', () => {
+    if (activeTooltip) { activeTooltip.classList.remove('visible'); activeTooltip.remove(); activeTooltip = null; }
+  });
+
+})();
+</script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import fs from "fs";
 import path from "path";
 import http from "http";
@@ -21,6 +22,8 @@ import { validateXmlAgainstXsd } from "./utils/validateXml";
 import { categoriesService } from "./soap/categoriesService";
 import { typeDefs } from "./graphql/schema";
 import { resolvers } from "./graphql/resolvers";
+import { startTokenCleanupJob } from "./lib/tokenCleanup";
+import { authenticate } from "./middleware/auth";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -28,9 +31,21 @@ const PORT = process.env.PORT || 3001;
 const GRPC_HOST = process.env.GRPC_SERVER_HOST || "localhost:50051";
 
 // Middleware
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174").split(",");
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin || allowedOrigins[0]);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Routes
 app.use("/auth", authRoutes);
@@ -38,7 +53,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/upload", uploadRoutes);
 
 // Generate XML from DB categories
-app.get("/api/generate-xml", async (_req, res) => {
+app.get("/api/generate-xml", authenticate, async (_req, res) => {
   try {
     const categories = await prisma.category.findMany({ orderBy: { id: "asc" } });
 
@@ -69,7 +84,7 @@ app.get("/api/generate-xml", async (_req, res) => {
 });
 
 // Validate generated XML against XSD
-app.get("/api/validate-xml", (_req, res) => {
+app.get("/api/validate-xml", authenticate, (_req, res) => {
   const xmlPath = path.resolve(__dirname, "../generated/categories.xml");
 
   if (!fs.existsSync(xmlPath)) {
@@ -83,7 +98,7 @@ app.get("/api/validate-xml", (_req, res) => {
 });
 
 // Weather proxy - calls gRPC server
-app.get("/api/weather", (req, res) => {
+app.get("/api/weather", authenticate, (req, res) => {
   const city = (req.query.city as string) || "";
 
   if (!city) {
@@ -124,11 +139,11 @@ app.get("/api/weather", (req, res) => {
 });
 
 // Settings endpoint
-app.get("/api/settings", (_req, res) => {
+app.get("/api/settings", authenticate, (_req, res) => {
   res.json({ useCustomApi: process.env.USE_CUSTOM_API !== "false" });
 });
 
-app.put("/api/settings", (req, res) => {
+app.put("/api/settings", authenticate, (req, res) => {
   const { useCustomApi } = req.body;
   process.env.USE_CUSTOM_API = useCustomApi ? "true" : "false";
   res.json({ useCustomApi: process.env.USE_CUSTOM_API !== "false" });
@@ -178,6 +193,9 @@ async function startServer() {
     console.log(`Backend running on http://localhost:${PORT}`);
     console.log(`GraphQL at http://localhost:${PORT}/graphql`);
     console.log(`SOAP at http://localhost:${PORT}/soap?wsdl`);
+
+    // Start periodic cleanup of expired refresh tokens
+    startTokenCleanupJob(60 * 60 * 1000); // Cleanup every hour
   });
 }
 

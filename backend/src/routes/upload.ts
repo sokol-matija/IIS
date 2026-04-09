@@ -5,11 +5,11 @@ import fs from "fs";
 import path from "path";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import { validateXmlAgainstXsd } from "../utils/validateXml";
+import { authenticate } from "../middleware/auth";
 
 const router: Router = Router();
-const prisma = new PrismaClient();
 const upload = multer({ dest: "/tmp/uploads/" });
 
 const ajv = new Ajv({ allErrors: true });
@@ -22,6 +22,7 @@ const validateJson = ajv.compile(jsonSchema);
 // POST /api/upload
 router.post(
   "/",
+  authenticate,
   upload.fields([
     { name: "xmlFile", maxCount: 1 },
     { name: "jsonFile", maxCount: 1 },
@@ -69,6 +70,11 @@ router.post(
       return;
     }
 
+    if (req.query.validateOnly === "true") {
+      res.json({ valid: true, message: "Validation passed" });
+      return;
+    }
+
     try {
       const category = await prisma.category.create({
         data: {
@@ -79,11 +85,13 @@ router.post(
       });
       res.json({ data: category });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      if (message.includes("Unique constraint")) {
+      // Don't expose internal error details
+      if (err instanceof Error && err.message.includes("Unique constraint")) {
         res.status(409).json({ errors: ["Category with this slug already exists"] });
       } else {
-        res.status(500).json({ errors: [message] });
+        // Log error internally but return generic message to client
+        console.error("Upload error:", err);
+        res.status(500).json({ errors: ["Failed to create category"] });
       }
     }
   }

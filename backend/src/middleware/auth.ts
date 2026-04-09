@@ -1,10 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { prisma } from "../lib/prisma";
 
 export interface AuthPayload {
   userId: number;
   email: string;
   role: string;
+  tokenVersion?: number;
+  jti?: string;
+  iat?: number;
 }
 
 declare global {
@@ -15,9 +19,14 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "iis-super-secret-key-2025";
+// Enforce JWT_SECRET is set
+const JWT_SECRET: string = process.env.JWT_SECRET || "";
 
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable must be set");
+}
+
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "No token provided" });
@@ -26,7 +35,20 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as AuthPayload;
+
+    // Check tokenVersion — instant revocation
+    if (decoded.tokenVersion !== undefined) {
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { tokenVersion: true },
+      });
+      if (!user || decoded.tokenVersion !== user.tokenVersion) {
+        res.status(401).json({ error: "Token has been revoked" });
+        return;
+      }
+    }
+
     req.user = decoded;
     next();
   } catch {

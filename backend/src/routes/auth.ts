@@ -274,11 +274,21 @@ router.get("/users", authenticate, async (req: Request, res: Response): Promise<
   }
 
   const users = await prisma.user.findMany({
-    select: { id: true, email: true, role: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      _count: { select: { refreshTokens: true } },
+    },
     orderBy: { id: "asc" },
   });
 
-  res.json(users);
+  res.json(users.map((u) => ({
+    id: u.id,
+    email: u.email,
+    role: u.role,
+    activeSessions: u._count.refreshTokens,
+  })));
 });
 
 router.post("/revoke-user/:userId", authenticate, async (req: Request, res: Response): Promise<void> => {

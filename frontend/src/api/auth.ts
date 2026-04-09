@@ -62,7 +62,7 @@ export async function fetchUsersApi(accessToken: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!res.ok) throw new Error("Failed to fetch users")
-  return res.json() as Promise<{ id: number; email: string; role: string }[]>
+  return res.json() as Promise<{ id: number; email: string; role: string; activeSessions: number }[]>
 }
 
 export async function revokeUserApi(accessToken: string, userId: number) {

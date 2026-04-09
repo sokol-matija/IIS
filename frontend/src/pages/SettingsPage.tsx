@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 function useUserSessions() {
   const { accessToken, role } = useAuthStore()
-  const [users, setUsers] = useState<{ id: number; email: string; role: string }[]>([])
+  const [users, setUsers] = useState<{ id: number; email: string; role: string; activeSessions: number }[]>([])
   const [loading, setLoading] = useState(false)
   const [revoking, setRevoking] = useState<number | null>(null)
 
@@ -37,6 +37,7 @@ function useUserSessions() {
     try {
       await revokeUserApi(accessToken, userId)
       toast.success("All sessions revoked for user")
+      await loadUsers() // Reload to update status
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Revoke failed")
     } finally {
@@ -219,11 +220,16 @@ export default function SettingsPage() {
                       <Badge variant={u.role === "full-access" ? "success" : "warning"}>
                         {u.role}
                       </Badge>
+                      <Badge variant={u.activeSessions > 0 ? "success" : "destructive"}>
+                        {u.activeSessions > 0
+                          ? `${u.activeSessions} active session${u.activeSessions > 1 ? "s" : ""}`
+                          : "Revoked"}
+                      </Badge>
                     </div>
                     <Button
                       variant="destructive"
                       size="sm"
-                      disabled={sessions.revoking === u.id}
+                      disabled={sessions.revoking === u.id || u.activeSessions === 0}
                       onClick={() => sessions.revokeUser(u.id)}
                     >
                       {sessions.revoking === u.id ? "Revoking..." : "Revoke Sessions"}

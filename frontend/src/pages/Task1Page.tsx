@@ -10,7 +10,7 @@ import { FileText, FileJson } from "lucide-react"
 const API_URL = import.meta.env.VITE_API_URL || ""
 
 export default function Task1Page() {
-  const { role } = useAuthStore()
+  const { role, getToken } = useAuthStore()
   const isReadOnly = role === "read-only"
 
   const { xmlFileName, jsonFileName, xmlContent, jsonContent, setXmlFile, setJsonFile, setXmlContent, setJsonContent } =
@@ -21,16 +21,21 @@ export default function Task1Page() {
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await fetch(`${API_URL}/api/upload`, {
+      const token = await getToken()
+      const query = isReadOnly ? "?validateOnly=true" : ""
+      const res = await fetch(`${API_URL}/api/upload${query}`, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       })
       const data = await res.json()
-      return data as { data?: unknown; errors?: string[] }
+      return data as { data?: unknown; errors?: string[]; valid?: boolean; message?: string }
     },
     onSuccess: (data) => {
       if (data.errors && data.errors.length > 0) {
         toast.error(`Validation failed: ${data.errors[0]}`)
+      } else if (data.valid) {
+        toast.success("Validation passed")
       } else {
         toast.success("Category saved successfully")
       }
@@ -162,13 +167,13 @@ export default function Task1Page() {
 
         <Button
           type="submit"
-          disabled={loading || isReadOnly || (!xmlContent && !jsonContent)}
+          disabled={loading || (!xmlContent && !jsonContent)}
           className="h-10 px-6"
         >
           {loading
             ? "Validating..."
             : isReadOnly
-              ? "Read-Only — Upload Disabled"
+              ? "Validate Only"
               : "Upload & Validate"}
         </Button>
       </form>
@@ -186,7 +191,13 @@ export default function Task1Page() {
         </div>
       )}
 
-      {result && (!result.errors || result.errors.length === 0) && (
+      {result && result.valid && (
+        <div className="mt-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-5 text-emerald-400">
+          <p className="font-semibold">Validation passed — both files are valid</p>
+        </div>
+      )}
+
+      {result && !result.valid && !!result.data && (
         <div className="mt-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-5 text-emerald-400">
           <p className="mb-2 font-semibold">Category saved successfully</p>
           <pre className="bg-muted/50 mt-3 max-h-96 overflow-auto rounded-lg border p-4 font-mono text-xs text-cyan-300">

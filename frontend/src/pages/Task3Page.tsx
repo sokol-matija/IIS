@@ -3,15 +3,21 @@ import { GradientCard } from "@msokol/gradient-card-component"
 import { Button } from "@/components/ui/button"
 import { useGenerateXmlMutation } from "../hooks/useGenerateXmlMutation"
 import { getMutationError } from "@/lib/utils"
+import { useAuthStore } from "@/store/authStore"
 
 const API_URL = import.meta.env.VITE_API_URL || ""
 
 export default function Task3Page() {
   const generateMutation = useGenerateXmlMutation()
+  const getToken = useAuthStore((s) => s.getToken)
 
   const validateMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${API_URL}/api/validate-xml`).catch(() => {
+      const token = await getToken()
+      const res = await fetch(`${API_URL}/api/validate-xml`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      }).catch(() => {
         throw new Error("Failed to contact server")
       })
       if (!res.ok) throw new Error("Failed to contact server")

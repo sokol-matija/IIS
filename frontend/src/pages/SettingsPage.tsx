@@ -1,8 +1,51 @@
-import { useReducer, useEffect } from "react"
+import { useReducer, useEffect, useState, useCallback } from "react"
+import { toast } from "sonner"
 import { useAuthStore } from "../store/authStore"
 import { getSettings, updateSettings } from "../api/settings"
+import { fetchUsersApi, revokeUserApi } from "../api/auth"
 import { GradientCard } from "@msokol/gradient-card-component"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+
+function useUserSessions() {
+  const { accessToken, role } = useAuthStore()
+  const [users, setUsers] = useState<{ id: number; email: string; role: string }[]>([])
+  const [loading, setLoading] = useState(false)
+  const [revoking, setRevoking] = useState<number | null>(null)
+
+  const isAdmin = role === "full-access"
+
+  const loadUsers = useCallback(async () => {
+    if (!accessToken || !isAdmin) return
+    setLoading(true)
+    try {
+      setUsers(await fetchUsersApi(accessToken))
+    } catch {
+      toast.error("Failed to load users")
+    } finally {
+      setLoading(false)
+    }
+  }, [accessToken, isAdmin])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
+
+  const revokeUser = async (userId: number) => {
+    if (!accessToken) return
+    setRevoking(userId)
+    try {
+      await revokeUserApi(accessToken, userId)
+      toast.success("All sessions revoked for user")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Revoke failed")
+    } finally {
+      setRevoking(null)
+    }
+  }
+
+  return { users, loading, revoking, isAdmin, revokeUser }
+}
 
 interface SettingsState {
   useCustomApi: boolean
@@ -63,6 +106,7 @@ export default function SettingsPage() {
   const { role } = useAuthStore()
   const isReadOnly = role === "read-only"
   const { useCustomApi, loading, saving, toggle } = useSettings()
+  const sessions = useUserSessions()
 
   if (loading) {
     return (
@@ -152,6 +196,45 @@ export default function SettingsPage() {
           </div>
         </div>
       </GradientCard>
+
+      {/* User Sessions — admin only */}
+      {sessions.isAdmin && (
+        <GradientCard
+          variant="original"
+          title="User Sessions"
+          description="Revoke all active sessions for any user"
+        >
+          <div className="mt-4">
+            {sessions.loading ? (
+              <p className="text-muted-foreground text-sm">Loading users...</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {sessions.users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between rounded border border-white/10 bg-white/5 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-foreground text-sm font-medium">{u.email}</span>
+                      <Badge variant={u.role === "full-access" ? "success" : "warning"}>
+                        {u.role}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={sessions.revoking === u.id}
+                      onClick={() => sessions.revokeUser(u.id)}
+                    >
+                      {sessions.revoking === u.id ? "Revoking..." : "Revoke Sessions"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </GradientCard>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { create } from "zustand"
-import { loginApi, refreshApi } from "../api/auth"
+import { loginApi, logoutApi, refreshApi, registerApi } from "../api/auth"
 
 interface AuthPayload {
   userId: number
@@ -21,6 +21,7 @@ interface AuthStoreState {
   email: string | null
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string) => Promise<void>
   logout: () => void
   getToken: () => Promise<string | null>
   _setAuth: (accessToken: string, role: string, email: string) => void
@@ -49,28 +50,39 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const data = await loginApi(emailInput, password)
     const decoded = decodeJwt(data.accessToken)
     get()._setAuth(data.accessToken, decoded.role, decoded.email)
-    localStorage.setItem("refreshToken", data.refreshToken)
+    // Refresh token is now in HttpOnly cookie, no need to store locally
+  },
+
+  register: async (emailInput: string, password: string) => {
+    const data = await registerApi(emailInput, password)
+    const decoded = decodeJwt(data.accessToken)
+    get()._setAuth(data.accessToken, decoded.role, decoded.email)
+    // Refresh token is now in HttpOnly cookie, no need to store locally
   },
 
   logout: () => {
+    const { accessToken } = get()
+    if (accessToken) {
+      logoutApi(accessToken).catch(() => {})
+    }
     get()._clearAuth()
-    localStorage.removeItem("refreshToken")
+    // Refresh token is in HttpOnly cookie, automatically cleared on server
   },
 
   getToken: async (): Promise<string | null> => {
     const { accessToken, logout } = get()
     if (accessToken) {
       const decoded = decodeJwt(accessToken)
-      if (decoded.exp * 1000 > Date.now() + 60000) {
+      if (decoded.exp * 1000 > Date.now() + 10000) {
         return accessToken
       }
     }
-    const refreshToken = localStorage.getItem("refreshToken")
-    if (!refreshToken) return null
+    // Refresh token is now in HttpOnly cookie
     try {
-      const data = await refreshApi(refreshToken)
+      const data = await refreshApi("")
       const decoded = decodeJwt(data.accessToken)
       get()._setAuth(data.accessToken, decoded.role, decoded.email)
+      // New refresh token is set in cookie automatically
       return data.accessToken
     } catch {
       logout()
@@ -88,19 +100,28 @@ export function resetAuthStore() {
 export function useAuthInit() {
   const _setAuth = useAuthStore((s) => s._setAuth)
   useEffect(() => {
+    // Use a flag to prevent double-refresh in React Strict Mode (dev)
+    let isMounted = true
+
     resetAuthStore()
-    const refreshToken = localStorage.getItem("refreshToken")
-    if (!refreshToken) return
     const controller = new AbortController()
-    refreshApi(refreshToken, controller.signal)
+
+    refreshApi("", controller.signal)
       .then((data) => {
+        if (!isMounted) return
         const decoded = decodeJwt(data.accessToken)
         _setAuth(data.accessToken, decoded.role, decoded.email)
+        // New refresh token is set in cookie automatically
       })
       .catch((err) => {
-        if (err.name !== "AbortError") localStorage.removeItem("refreshToken")
+        if (!isMounted || err.name === "AbortError") return
+        // Refresh failed, user will need to log in again
       })
-    return () => controller.abort()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }

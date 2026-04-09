@@ -6,29 +6,28 @@ import { GradientCard } from "@msokol/gradient-card-component"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Layers, LogIn, Loader2 } from "lucide-react"
+import { Layers, UserPlus, Loader2 } from "lucide-react"
 import { getMutationError } from "@/lib/utils"
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const { login } = useAuthStore()
+  const { register } = useAuthStore()
   const navigate = useNavigate()
 
-  const loginMutation = useMutation({
-    mutationFn: () => login(email, password),
+  const registerMutation = useMutation({
+    mutationFn: () => register(email, password),
     onSuccess: () => navigate("/task1"),
   })
 
   const handleSubmit = (e: React.BaseSyntheticEvent) => {
     e.preventDefault()
-    loginMutation.mutate()
+    registerMutation.mutate()
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-[400px]">
-        {/* Logo — glowing frosted badge */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <div
             className="flex h-16 w-16 items-center justify-center rounded-2xl"
@@ -53,8 +52,8 @@ export default function LoginPage() {
 
         <GradientCard
           variant="lavender"
-          title="Welcome back!"
-          description="Log in to your IIS account"
+          title="Create an account"
+          description="Register for a new IIS account"
         >
           <form onSubmit={handleSubmit} className="mt-2">
             <div className="mb-5">
@@ -70,7 +69,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="admin@iis.hr"
+                placeholder="you@example.com"
                 autoComplete="email"
               />
             </div>
@@ -89,29 +88,29 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                autoComplete="current-password"
+                autoComplete="new-password"
               />
             </div>
 
             <Button
               type="submit"
-              disabled={loginMutation.isPending}
+              disabled={registerMutation.isPending}
               className="h-11 w-full justify-center gap-2 text-sm"
             >
-              {loginMutation.isPending ? (
+              {registerMutation.isPending ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
                 <>
-                  Sign In
-                  <LogIn size={15} />
+                  Create Account
+                  <UserPlus size={15} />
                 </>
               )}
             </Button>
 
-            {loginMutation.error && (
+            {registerMutation.error && (
               <div
                 className="mt-4 rounded-xl p-4 text-sm"
                 style={{
@@ -121,20 +120,17 @@ export default function LoginPage() {
                   backdropFilter: "blur(8px)",
                 }}
               >
-                {getMutationError(loginMutation.error, "Login failed")}
+                {getMutationError(registerMutation.error, "Registration failed")}
               </div>
             )}
           </form>
         </GradientCard>
 
         <p className="mt-5 text-center text-sm text-white/40">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-violet-400 hover:text-violet-300 hover:underline">
-            Create one
+          Already have an account?{" "}
+          <Link to="/login" className="text-violet-400 hover:text-violet-300 hover:underline">
+            Sign in
           </Link>
-        </p>
-        <p className="mt-2 text-center text-xs text-white/30">
-          admin@iis.hr / admin123 &bull; reader@iis.hr / reader123
         </p>
       </div>
     </div>

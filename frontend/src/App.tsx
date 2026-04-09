@@ -5,6 +5,7 @@ import { Toaster } from "sonner"
 import { useAuthStore, AuthInit } from "./store/authStore"
 import Layout from "./components/Layout"
 import LoginPage from "./pages/LoginPage"
+import RegisterPage from "./pages/RegisterPage"
 import Task1Page from "./pages/Task1Page"
 import Task2Page from "./pages/Task2Page"
 import Task3Page from "./pages/Task3Page"
@@ -37,6 +38,10 @@ function AppRoutes() {
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/task1" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/register"
+        element={isAuthenticated ? <Navigate to="/task1" replace /> : <RegisterPage />}
       />
       <Route
         path="/"

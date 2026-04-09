@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { useAuthStore } from "@/store/authStore"
 
 const API_URL = import.meta.env.VITE_API_URL || ""
 
@@ -78,10 +79,15 @@ function TempBadge({ temp }: { temp: string }) {
 export default function Task4Page() {
   const [city, setCity] = useState("")
   const [cityFilter, setCityFilter] = useState("")
+  const getToken = useAuthStore((s) => s.getToken)
 
   const searchMutation = useMutation({
     mutationFn: async (cityName: string) => {
-      const res = await fetch(`${API_URL}/api/weather?city=${encodeURIComponent(cityName)}`)
+      const token = await getToken()
+      const res = await fetch(`${API_URL}/api/weather?city=${encodeURIComponent(cityName)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      })
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || "Request failed")
